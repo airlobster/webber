@@ -124,7 +124,7 @@ def main():
 		log.set_level(args.log)
 		if args.debug:
 			# override log level to DEBUG if debug mode is enabled
-			log.set_level("DEBUG")
+			log.set_level("TRACE")
 		log.trace('CLI args:', args)
 
 		set_context(

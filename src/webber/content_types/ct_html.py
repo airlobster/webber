@@ -4,6 +4,7 @@ from typing import Iterable, Tuple, List
 import re
 from webber.algorithms.stack import Stack
 from webber.algorithms.queue import Queue
+from webber.algorithms.breadcrumbs import Breadcrumbs
 from webber.algorithms.textmanip import render_table
 from webber.context import context
 from webber.ansi import ANSI
@@ -24,6 +25,7 @@ def html_lexer(text:str) -> Iterable[str]:
 			super().__init__(*args, **kwargs)
 			self.blacklist = set(html_lexer.__context__.config.html.blacklist)
 			self.q = Queue()
+			self.breadcrumbs = Breadcrumbs()
 			self.swallow = 0
 
 		def handle_starttag(self, tag, attrs):
