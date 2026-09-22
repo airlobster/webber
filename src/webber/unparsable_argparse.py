@@ -1,5 +1,5 @@
 import sys
-from types import SimpleNamespace
+from typing import Tuple
 import argparse
 import shlex
 
@@ -8,13 +8,12 @@ class UnparsableArgumentParser(argparse.ArgumentParser):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
-	def unparse(self, parsed_namepsace:SimpleNamespace, exclude:list[str]=[]) -> tuple[str, ...]:
-		args = parsed_namepsace
+	def unparse(self, parsed:argparse.Namespace, exclude:Tuple[str]=[]) -> tuple[str, ...]:
 		positional_keys = [action.dest for action in self._actions if not action.option_strings]
-		positionals = [getattr(args, e) for e in positional_keys]
+		positionals = [getattr(parsed, e) for e in positional_keys]
 		# Extract non-positional arguments into a dictionary, excluding specified keys
 		d = {
-			k:v for k,v in vars(args).items()
+			k:v for k,v in vars(parsed).items()
 			if k not in exclude and k not in positional_keys
 			}
 		# Separate arguments into those with values and boolean flags
