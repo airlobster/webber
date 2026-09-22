@@ -34,7 +34,7 @@ dist:
 
 checkin:
 	@date > TIMESTAMP
-	git pull && git add . && git commit -m "$(shell git diff . | head -n 20)" && git push
+	git pull && git add . && git commit -m "$(shell git diff . | grep '@@' | head -n 20)" && git push
 
 tree:
 	@tree -CF --dirsfirst --charset=utf8 -I __pycache__
