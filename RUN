@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+cd $(dirname "$0")
+
+./scripts/run_in_venv.sh python3 src/webber/main.py "$@"
+

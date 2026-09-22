@@ -52,3 +52,5 @@ help:
 	@echo "  tree       Display the project directory tree"
 	@echo "  help       Show this help message"
 	@echo "  profile    Run the $(PROJECT) script with cProfile for performance analysis (debug only)"
+
+.PHONY: build install uninstall run profile clean dist checkin tree help
