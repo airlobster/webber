@@ -1,10 +1,8 @@
 import os
 import sys
-from types import SimpleNamespace
 from typing import Any, Callable, Iterable
 from pathlib import Path
 import shutil
-import shlex
 from functools import wraps
 from contextlib import contextmanager
 from webber.context import context
@@ -102,27 +100,10 @@ def set_breakpoint(f:Callable[[], bool]|None=None) -> None:
 
 
 # Function to restart the application, optionally excluding certain command-line arguments
-def restart(args:SimpleNamespace, exclude:list[str]):
+def restart(args):
 	print("Restarting application...")
 	python = sys.executable
-	positional_keys = getattr(args, '_positionals', [])
-	positionals = [getattr(args, e) for e in positional_keys]
-	d = {
-		k:v for k,v in vars(args).items()
-		if k not in exclude and k not in positional_keys and not k.startswith('_')
-		}
-	with_values = [
-		f"--{k}={shlex.quote(str(v))}"
-		for k,v in d.items()
-		if not isinstance(v, bool)
-		]
-	without_values = [
-		f"--{k}"
-		for k,v in d.items()
-		if isinstance(v, bool) and v
-		]
-	elements = [sys.argv[0], *with_values, *without_values, *positionals]
-	os.execl(python, python, *elements)
+	os.execl(python, python, *args)
 
 
 def make_absolute_url(base:str, url:str) -> str:

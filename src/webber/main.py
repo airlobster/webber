@@ -8,7 +8,13 @@ from webber.config import configurable, reinit_config
 from webber.context import set_context
 from webber.context import context
 from webber.ct_dispatch import get_content_type_handler
-from webber.utils import intercept, handle_broken_pipe, get_terminal_size, restart
+from webber.utils import (
+	intercept,
+	handle_broken_pipe,
+	get_terminal_size,
+	restart,
+)
+from webber.unparsable_argparse import UnparsableArgumentParser
 from webber.ansi import ANSI
 from webber.tui import tui_session
 from webber.algorithms.textmanip import (
@@ -96,7 +102,7 @@ def batch_mode():
 
 def parseCommandLine():
 	debug_features = Path.joinpath(Path(sys.argv[0]).parent, "__debug__.py").exists()
-	parser = argparse.ArgumentParser(description=f"{appname} - command-line web reader", exit_on_error=False)
+	parser = UnparsableArgumentParser(description=f"{appname} - command-line web reader", exit_on_error=False)
 	parser.add_argument("-v", "--version", action="version", version=f"{appname} {version}")
 	parser.add_argument("-b", "--batch", action="store_true", default=False, help="Enable batch mode")
 	parser.add_argument("-C", "--colors", choices=["auto", "always", "never"], default="auto", help="Color output mode")
@@ -107,9 +113,7 @@ def parseCommandLine():
 		parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode")
 		parser.add_argument("-p", "--profile", action="store_true", default=False, help="Enable profiling")
 	args = parser.parse_args()
-	# Store the names of positional arguments separately, to help reconstructing the command later on
-	args._positionals = [action.dest for action in parser._actions if not action.option_strings]
-	return args
+	return args, lambda exclude=[]: parser.unparse(args, exclude=exclude)
 
 
 @configurable
@@ -117,7 +121,7 @@ def main():
 	args = None
 	log.set_level("INFO")
 	try:
-		args = parseCommandLine()
+		args, unparse = parseCommandLine()
 		log.set_level(args.log)
 		if args.debug:
 			# override log level to DEBUG if debug mode is enabled
@@ -133,7 +137,7 @@ def main():
 		if args.reset:
 			WebberTuiHistory.delete_file()
 			reinit_config(appname)
-			restart(args, exclude=["reset"])
+			restart(unparse(["reset"]))
 			return 0
 
 		# build application context
