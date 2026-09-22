@@ -249,16 +249,12 @@ def tui_session(navigate, render):
 	def _(event):
 		set_current_mode("edit")
 
-	@kb.add("escape", filter=is_mode("main"))
+	@kb.add("escape")
 	@doc("Return to view mode")
 	def _(event):
 		nonlocal error
 		searcher.reset()
 		error = None
-
-	@kb.add("escape", filter=is_mode("edit"))
-	@doc("Return to view mode")
-	def _(event):
 		set_current_mode("main")
 		prompt_area.buffer.reset()
 
@@ -412,9 +408,9 @@ def tui_session(navigate, render):
 		if not url:
 			beep()
 			return
-		get_app().invalidate()
 		nav_to(url)
 
+	@commands.add("?", help="Show this help message")
 	@commands.add("help", help="Show this help message")
 	def help_command(*args):
 		help()
@@ -424,6 +420,7 @@ def tui_session(navigate, render):
 		with generated_page("about") as u:
 			nav_to(u)
 
+	@commands.add("/", help="Search within the current page")
 	@commands.add("find", help="Search within the current page")
 	def search_command(*args):
 		nonlocal searcher
@@ -432,6 +429,7 @@ def tui_session(navigate, render):
 			searcher.search(get_adapted_content(), *args)
 			goto_next_search_match()
 
+	@commands.add("w", help="Save the current page")
 	@commands.add("save", help="Save the current page")
 	def save_command(*args):
 		nonlocal url
@@ -461,8 +459,10 @@ def tui_session(navigate, render):
 			layout=Layout(root_container),
 			full_screen=True,
 			mouse_support=True,
-			style=Style.from_dict(styles)
+			style=Style.from_dict(styles),
 	)
+	tui_app.ttimeoutlen=0.05
+	tui_app.timeoutlen=0.05
 
 	history.load_history_strings()
 	if url:
