@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from types import SimpleNamespace
 from typing import Iterable, Tuple, List
 import re
@@ -6,8 +7,6 @@ from webber.algorithms.queue import Queue
 from webber.algorithms.textmanip import render_table
 from webber.context import context
 from webber.ansi import ANSI
-from webber.utils import set_breakpoint
-from webber import log
 from webber.profile import profiled
 
 class LexerEventType:
@@ -261,12 +260,13 @@ class ListItemBehavior(IgnoreWhitespaces):
 				continue
 			if bullet_color:
 				yield bullet_color
-			yield f'\n{indent*self._nest}{''.join(self.render_bullet())} '
+			yield f'\n{indent*(self._nest+1)}{''.join(self.render_bullet())} '
 			if bullet_color:
 				yield TagBaseBehavior.__context__.config.palette.none
 			yield ''.join(child.render()).lstrip()
 		yield '\n'
 
+	@abstractmethod
 	def render_bullet(self):
 		return
 		yield

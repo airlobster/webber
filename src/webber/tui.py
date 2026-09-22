@@ -72,13 +72,6 @@ def tui_session(navigate, render):
 	def nav_to(next_url):
 		nonlocal orig_content, url, links, error, vofs, searcher
 		try:
-			# is this a link index?
-			if re.match(r'^#[1-9][0-9]*$', next_url):
-				# look it up in the links list
-				index = int(next_url[1:])-1
-				if index < 0 or index >= len(links):
-					raise IndexError("No such link")
-				next_url = make_absolute_url(url, links[index])
 			tmp_links = []
 			orig_content = list(render(navigate(next_url, links=tmp_links)))
 			links = tmp_links
@@ -400,7 +393,16 @@ def tui_session(navigate, render):
 		if not args:
 			beep()
 			return
-		nav_to(args[0])
+		next_url = args[0]
+		# is link index?
+		if re.match(r'^#[1-9][0-9]*$', next_url):
+			# look it up in the links list
+			index = int(next_url[1:])-1
+			if index < 0 or index >= len(links):
+				raise IndexError("No such link")
+			# convert the link index to an absolute URL
+			next_url = make_absolute_url(url, links[index])
+		nav_to(next_url)
 
 	@commands.add("reload", help="Reload the current page")
 	def reload_command(*args):
