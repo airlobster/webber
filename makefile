@@ -48,7 +48,7 @@ help:
 	@echo "  install    Install the $(PROJECT) package using pipx"
 	@echo "  uninstall  Uninstall the $(PROJECT) package using pipx"
 	@echo "  run        Run the $(PROJECT) script with optional arguments"
-	@echo "  profile    Run the $(PROJECT) script with cProfile for performance analysis"
 	@echo "  clean      Clean build artifacts"
 	@echo "  tree       Display the project directory tree"
 	@echo "  help       Show this help message"
+	@echo "  profile    Run the $(PROJECT) script with cProfile for performance analysis (debug only)"
