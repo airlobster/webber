@@ -1,0 +1,32 @@
+<html>
+	<head>
+		<title>Help</title>
+	</head>
+	<body>
+		<h1>Help</h1>
+
+		<h2>Commands (prompt-mode)</h2>
+		<table>
+			{% for cmd in commands %}
+			<tr>
+				<th>{{ cmd.cmd }}</th>
+				<td>{{ cmd.help }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+
+		<h2>Key Bindings (view-mode)</h2>
+		<table>
+			{% for k in keys %}
+			<tr>
+				<th>{{ k.keys }}</th>
+				<td>{{ k.help }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+
+		<footer>
+			<p><i>* Hit &lt;BACK&gt; to return to the previous page.</i></p>
+		</footer>
+	</body>
+</html>

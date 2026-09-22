@@ -1,0 +1,6 @@
+<b>{{ appname }} v{{ version }}</b>
+<b>url:</b> <i>{{url}}</i>
+<b>pos:</b> <i>{{position+1}}/{{total_lines}}</i>
+{% if search_rel_pos[1] %}
+<b>search:</b> <i>{{search_rel_pos[0] + 1}}/{{search_rel_pos[1]}}</i>
+{% endif %}
