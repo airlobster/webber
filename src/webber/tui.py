@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 import re
+import html
 from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
 from prompt_toolkit.key_binding import KeyBindings
@@ -11,7 +12,7 @@ from prompt_toolkit.formatted_text import ANSI as ptk_ansi, HTML
 from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
-from webber.utils import doc, clip_string, make_absolute_url
+from webber.utils import doc, clip_string, make_absolute_url, set_breakpoint
 from webber.context import context, dynamic_context
 from webber.tui_lib.cmd_binding import CommandBindings
 from webber.tui_lib.nav_history import NavigationHistory
@@ -41,7 +42,7 @@ def tui_session(navigate, render):
 	version = tui_session.__context__.version
 	styles = tui_session.__context__.config.repl.styles
 	url = tui_session.__context__.args.url
-	logo = f"{appname[:3].upper()}{appname[3:].lower()}"
+	logo = f"webR v.{version}"
 	orig_content = []
 	links = []
 	vofs = 0
@@ -192,33 +193,6 @@ def tui_session(navigate, render):
 			return HTML(text_from_template('error', {'msg': clip_string(error, dynamic_width()-4)}))
 		msg = [f for f in modes[current_mode].status_bar().splitlines() if f.strip()]
 		return HTML(' \u2502 '.join(msg))
-
-	content_area = Window(
-			content=FormattedTextControl(get_visible_content),
-			height=dynamic_height,
-			width=dynamic_width,
-			)
-
-	prompt_area = TextArea(
-		height=1,
-		width=dynamic_width,
-		prompt=HTML(f'<b>:</b> '),
-		multiline=False,
-		accept_handler=handle_submit,
-		history=history,
-		completer=DynamicCompleter(lambda: [*commands.get_commands(),*history.get_strings()]),
-		complete_while_typing=True,
-		read_only=is_mode("main"),
-		style="class:input-box",
-		)
-	prompt_area.control.key_bindings = kb
-
-	status_bar = Window(
-		FormattedTextControl(get_status_bar),
-		height=1,
-		width=dynamic_width,
-		style="class:status-bar"
-		)
 
 	def help():
 		nonlocal commands, kb
@@ -449,15 +423,43 @@ def tui_session(navigate, render):
 		with open(args[0], "w") as f:
 			f.write(content)
 
+	def get_title_bar_content():
+		t = html.escape(tui_session.__get_context__('doc_title'))
+		return HTML(f"<b>{logo}:</b> <i>{t}</i>")
 
 	title_bar = Window(
-			content=FormattedTextControl(
-				lambda: HTML(f"<b>{logo}:</b> * <i>{tui_session.__get_context__('doc_title')}</i> *")
-			),
+			content=FormattedTextControl(get_title_bar_content),
 			height=1,
 			width=dynamic_width,
 			style="class:title-bar",
 			)
+
+	content_area = Window(
+			content=FormattedTextControl(get_visible_content),
+			height=dynamic_height,
+			width=dynamic_width,
+			)
+
+	prompt_area = TextArea(
+		height=1,
+		width=dynamic_width,
+		prompt=HTML(f'<b>:</b> '),
+		multiline=False,
+		accept_handler=handle_submit,
+		history=history,
+		completer=DynamicCompleter(lambda: [*commands.get_commands(),*history.get_strings()]),
+		complete_while_typing=True,
+		read_only=is_mode("main"),
+		style="class:input-box",
+		)
+	prompt_area.control.key_bindings = kb
+
+	status_bar = Window(
+		FormattedTextControl(get_status_bar),
+		height=1,
+		width=dynamic_width,
+		style="class:status-bar"
+		)
 
 	root_container = HSplit([
 		title_bar,

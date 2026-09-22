@@ -23,7 +23,7 @@ class PushPopContainer(ABC):
 		pass
 
 	@abstractmethod
-	def pop(self, defaultvalue:Any=None) -> Any:
+	def pop(self, defaultvalue:Any=None, guard=None) -> Any:
 		pass
 
 	@abstractmethod

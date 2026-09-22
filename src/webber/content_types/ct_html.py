@@ -10,6 +10,7 @@ from webber.algorithms.textmanip import render_table
 from webber.context import context, set_context
 from webber.ansi import ANSI
 from webber.profile import profiled
+from webber import log
 
 class LexerEventType:
 	INIT = 'INIT'
@@ -56,7 +57,7 @@ def html_lexer(text:str) -> Iterable[str]:
 			# if it's a void-element, ignore end events not triggered manually
 			if is_void and not manual:
 				return
-			self.breadcrumbs.pop()
+			self.breadcrumbs.pop(t)
 			if not self.swallow or self.in_white:
 				self.notify(SimpleNamespace(type=LexerEventType.END, tag=t))
 			if is_black:
@@ -91,9 +92,12 @@ def html_lexer(text:str) -> Iterable[str]:
 		def is_white(self, tag:str) -> bool:
 			return any(fnmatch(tag.lower(), t.lower()) for t in self.whitelist)
 
-	parser = MyHtmlParser()
-	parser.feed(text)
-	yield from parser.get_tokens()
+	try:
+		parser = MyHtmlParser()
+		parser.feed(text)
+		yield from parser.get_tokens()
+	except Exception as e:
+		log.error(f"Error while parsing HTML: {e}")
 
 ##############################################################################
 ##############################################################################
@@ -136,10 +140,7 @@ class TagBaseBehavior:
 			self.children.append(t)
 			t.on_event(SimpleNamespace(type=LexerEventType.INIT,))
 		elif e.type == LexerEventType.END:
-			t = self.context.active_tags.peek()
-			if t.tag != e.tag:
-				raise ValueError(f"Mismatched end tag: expected {t.tag}, got {e.tag}")
-			self.context.active_tags.pop()
+			self.context.active_tags.pop(e.tag)
 		elif e.type == LexerEventType.DATA:
 			self.children.append(TextItemBehavior(self, e.data))
 
@@ -512,6 +513,8 @@ def html_render(tokens: Iterable[Tuple], links:List[str]=None) -> Iterable[str]:
 		context.active_tags.push(root)
 		for token in tokens:
 			t = context.active_tags.peek()
+			if t is None:
+				continue
 			t.on_event(token)
 		# render DOM tree
 		yield from root.render()

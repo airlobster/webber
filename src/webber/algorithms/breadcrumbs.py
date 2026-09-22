@@ -17,7 +17,7 @@ class Breadcrumbs(Stack):
 		log.debug(repr(self))
 		return r
 
-	def pop(self):
-		r = super().pop()
+	def pop(self, guard=None):
+		r = super().pop(guard)
 		log.debug(repr(self))
 		return r

@@ -160,7 +160,7 @@ def main():
 			raise RuntimeError("Standard input must be a TTY")
 
 		# determine if batch mode should be used
-		batch_run = args.batch or not sys.stdout.isatty() or not sys.stderr.isatty()
+		batch_run = args.batch or not sys.stdout.isatty() or not sys.stdin.isatty()
 		if batch_run:
 			batch_mode()
 			return
