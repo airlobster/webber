@@ -17,6 +17,7 @@ def load_config(appname:str) -> type:
 	namespace = {
 		"palette" : {
 			"none": ANSI.RESET,
+			"title": f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_HEX(color_scheme[5])}",
 			"a": ANSI.FG_HEX(color_scheme[2]),
 			"link_index": f"{ANSI.FG_HEX(color_scheme[2])}{ANSI.ITALIC}{ANSI.DIM}",
 			"h1": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
@@ -28,7 +29,6 @@ def load_config(appname:str) -> type:
 			"pre": f"{ANSI.ITALIC}{ANSI.FG_HEX(color_scheme[1])}",
 			"th": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[0])}",
 			"td": ANSI.ITALIC,
-			"title": f"{ANSI.BOLD}{ANSI.ITALIC}{ANSI.FG_HEX(color_scheme[3])}",
 			"code": ANSI.ITALIC,
 			"b": ANSI.BOLD,
 			"strong": ANSI.BOLD,
@@ -40,7 +40,22 @@ def load_config(appname:str) -> type:
 			"highlight": ANSI.BOLD + ANSI.FG_HEX('#ffffff') + ANSI.BG_HEX('#555555'),
 		},
 		"html": {
-			"blacklist": ['head', 'nav', 'video', 'dl', 'template', 'style', 'script', 'select', 'button', 'input', 'textarea', 'svg', 'img', 'form']
+			"blacklist": [
+				'html.head',
+				'*.nav',
+				'*.video',
+				'*.dl',
+				'*.template',
+				'*.style',
+				'*.script',
+				'*.select',
+				'*.button',
+				'*.input',
+				'*.textarea',
+				'*.svg',
+				'*.img',
+				'*.form'
+			]
 		},
 		"http": {
 			"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",

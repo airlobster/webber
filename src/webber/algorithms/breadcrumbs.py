@@ -14,11 +14,10 @@ class Breadcrumbs(Stack):
 
 	def push(self, item):
 		r = super().push(item)
-		log.trace(repr(self))
+		log.debug(repr(self))
 		return r
 
 	def pop(self):
 		r = super().pop()
-		log.trace(repr(self))
+		log.debug(repr(self))
 		return r
-

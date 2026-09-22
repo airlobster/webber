@@ -2,11 +2,12 @@ from abc import abstractmethod
 from types import SimpleNamespace
 from typing import Iterable, Tuple, List
 import re
+from fnmatch import fnmatch
 from webber.algorithms.stack import Stack
 from webber.algorithms.queue import Queue
 from webber.algorithms.breadcrumbs import Breadcrumbs
 from webber.algorithms.textmanip import render_table
-from webber.context import context
+from webber.context import context, set_context
 from webber.ansi import ANSI
 from webber.profile import profiled
 
@@ -23,44 +24,52 @@ def html_lexer(text:str) -> Iterable[str]:
 	class MyHtmlParser(HTMLParser):
 		def __init__(self, *args, **kwargs):
 			super().__init__(*args, **kwargs)
-			self.blacklist = set(html_lexer.__context__.config.html.blacklist)
+			html_config = getattr(html_lexer.__context__.config, 'html', SimpleNamespace())
+			self.blacklist = set(getattr(html_config, 'blacklist', []))
+			self.whitelist = set(getattr(html_config, 'whitelist', ["html.head.title"]))
 			self.q = Queue()
 			self.breadcrumbs = Breadcrumbs()
 			self.swallow = 0
+			self.in_white = 0
 
 		def handle_starttag(self, tag, attrs):
 			t = tag.lower()
+			self.breadcrumbs.push(t)
 			is_void = self.is_void(t)
-			is_black = self.is_black(t)
+			is_black = self.is_black(str(self.breadcrumbs))
+			is_white = self.is_white(str(self.breadcrumbs))
 			if is_black:
-				# start swallowing blacklisted tag
 				self.swallow += 1
-			if self.swallow:
-				# if it's a void element, it means we will ignore end events on it,
-				# so we decrement the swallow counter immediately for void blacklisted elements
-				if is_void and is_black:
-					self.swallow -= 1
-				return
-			self.notify(SimpleNamespace(type=LexerEventType.BEGIN, tag=t, attrs=attrs))
-			# manually signal a close-tag for void elements
+			if is_white:
+				self.in_white += 1
+			if not self.swallow or self.in_white:
+				self.notify(SimpleNamespace(type=LexerEventType.BEGIN, tag=t, attrs=attrs))
+			# force signaling a close-tag for void elements
 			if is_void:
 				self.handle_endtag(tag, manual=True)
 
 		def handle_endtag(self, tag, manual=False):
 			t = tag.lower()
 			is_void = self.is_void(t)
-			is_black = self.is_black(t)
-			# if is a void-element, see only end-events WE triggered ourselves
+			is_black = self.is_black(str(self.breadcrumbs))
+			is_white = self.is_white(str(self.breadcrumbs))
+			# if it's a void-element, ignore end events not triggered manually
 			if is_void and not manual:
 				return
-			if self.swallow:
-				if is_black:
-					self.swallow -= 1
-				return
-			self.notify(SimpleNamespace(type=LexerEventType.END, tag=t))
+			self.breadcrumbs.pop()
+			if not self.swallow or self.in_white:
+				self.notify(SimpleNamespace(type=LexerEventType.END, tag=t))
+			if is_black:
+				if self.swallow == 0:
+					raise ValueError(f"Unexpected end tag: {t}")
+				self.swallow -= 1
+			if is_white:
+				if self.in_white == 0:
+					raise ValueError(f"Unexpected end of white-listed tag: {t}")
+				self.in_white -= 1
 
 		def handle_data(self, data):
-			if self.swallow:
+			if self.swallow and not self.in_white:
 				return
 			self.notify(SimpleNamespace(type=LexerEventType.DATA, data=data))
 
@@ -77,7 +86,10 @@ def html_lexer(text:str) -> Iterable[str]:
 			return any(t.lower() == tag.lower() for t in void)
 
 		def is_black(self, tag:str) -> bool:
-			return any(tag.lower() == t.lower() for t in self.blacklist)
+			return any(fnmatch(tag.lower(), t.lower()) for t in self.blacklist)
+
+		def is_white(self, tag:str) -> bool:
+			return any(fnmatch(tag.lower(), t.lower()) for t in self.whitelist)
 
 	parser = MyHtmlParser()
 	parser.feed(text)
@@ -141,7 +153,9 @@ class TagBaseBehavior:
 				yield TagBaseBehavior.__context__.config.palette.none
 
 	def dispatch(self, e:SimpleNamespace):
-		if e.tag == 'table':
+		if e.tag == 'title':
+			t = DocumentTitle(self, e, self.context)
+		elif e.tag == 'table':
 			t = TableTagBehavior(self, e, self.context)
 		elif e.tag == 'pre':
 			t = PreformattedTagBehavior(self, e, self.context)
@@ -181,6 +195,24 @@ class DocumentRoot(TagBaseBehavior):
 
 	def __init__(self, context:SimpleNamespace):
 		super().__init__(parent=None, ev=None, context=context)
+
+##############################################################################
+
+class DocumentTitle(TagBaseBehavior):
+	@register_for_reset
+	@staticmethod
+	def reset_globals():
+		pass
+
+	def __init__(self, parent, ev:SimpleNamespace, context:SimpleNamespace):
+		super().__init__(parent, ev, context)
+
+	def render(self):
+		# assign the document title to the app context
+		s = ANSI.strip(''.join([''.join(c.render()) for c in self.children])).strip()
+		set_context(doc_title=s)
+		return
+		yield
 
 ##############################################################################
 
