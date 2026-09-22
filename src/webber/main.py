@@ -106,7 +106,10 @@ def parseCommandLine():
 	if debug_features:
 		parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode")
 		parser.add_argument("-p", "--profile", action="store_true", default=False, help="Enable profiling")
-	return parser.parse_args()
+	args = parser.parse_args()
+	# Store the names of positional arguments separately, to help reconstructing the command later on
+	args._positionals = [action.dest for action in parser._actions if not action.option_strings]
+	return args
 
 
 @configurable
@@ -130,7 +133,7 @@ def main():
 		if args.reset:
 			WebberTuiHistory.delete_file()
 			reinit_config(appname)
-			restart(without_args=["--reset", "-r"])
+			restart(args, exclude=["reset"])
 			return 0
 
 		# build application context
