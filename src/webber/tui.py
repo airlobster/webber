@@ -70,7 +70,7 @@ def tui_session(navigate, render):
 
 	@profiled
 	def nav_to(next_url):
-		nonlocal orig_content, url, links, error, vofs, searcher
+		nonlocal orig_content, url, links, error, vofs, searcher, history
 		try:
 			tmp_links = []
 			orig_content = list(render(navigate(next_url, links=tmp_links)))
@@ -79,6 +79,7 @@ def tui_session(navigate, render):
 			url = next_url
 			vofs = 0
 			error = None
+			history.append_string(next_url)
 		except Exception as e:
 			error = str(e)
 			raise
@@ -172,9 +173,8 @@ def tui_session(navigate, render):
 			if not f:
 				raise ValueError("Invalid command")
 			# run command
-			f()
-			# if we reached so far, this command worth keeping in history
-			history.append_string(text)
+			if f():
+				history.append_string(text)
 			error = None
 		except Exception as e:
 			error = str(e)
@@ -387,8 +387,8 @@ def tui_session(navigate, render):
 	def quit_command(*args):
 		tui_app.exit()
 
-	@commands.add("nav", help="Navigate to a URL or link")
-	@commands.add("navigate", help="Navigate to a URL or link")
+	@commands.add("nav", help="Navigate to a URL or link", add_to_history=False)
+	@commands.add("navigate", help="Navigate to a URL or link", add_to_history=False)
 	def navigate_command(*args):
 		if not args:
 			beep()

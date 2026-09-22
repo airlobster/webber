@@ -1,22 +1,25 @@
 from typing import Callable
 from types import SimpleNamespace
 import shlex
-import re
-
+from functools import wraps
 
 class CommandBindings:
 	def __init__(self):
 		self.commands = {}
 
 	# decorator for command handlers
-	def add(self, cmd:str, help:str=None) -> Callable:
+	def add(self, cmd:str, help:str=None, add_to_history:bool=True) -> Callable:
 		def decorator(f:Callable):
 			if cmd in self.commands:
 				raise ValueError(f"Command '{cmd}' is already registered.")
 			self.commands[cmd] = f
 			if help:
 				f.__doc__ = help
-			return f
+			@wraps(f)
+			def wrapper(*args, **kwargs):
+				f(*args, **kwargs)
+				return add_to_history
+			return wrapper
 		return decorator
 
 	# Retrieve all registered command names
