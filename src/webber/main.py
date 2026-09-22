@@ -2,7 +2,6 @@ import sys
 sys.path.append("src")
 from typing import Iterable, List
 from pathlib import Path
-import argparse
 import webber.log as log
 from webber.config import configurable, reinit_config
 from webber.context import set_context
