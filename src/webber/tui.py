@@ -188,12 +188,6 @@ def tui_session(navigate, render):
 			set_current_mode("main")
 			prompt_area.buffer.reset()
 
-	def get_status_bar():
-		if error:
-			return HTML(text_from_template('error', {'msg': clip_string(error, dynamic_width()-4)}))
-		msg = [f for f in modes[current_mode].status_bar().splitlines() if f.strip()]
-		return HTML(' \u2502 '.join(msg))
-
 	def help():
 		nonlocal commands, kb
 		help_info = commands.get_help_info()
@@ -426,6 +420,12 @@ def tui_session(navigate, render):
 	def get_title_bar_content():
 		t = html.escape(tui_session.__get_context__('doc_title'))
 		return HTML(f"<b>{logo}:</b> <i>{t}</i>")
+
+	def get_status_bar():
+		if error:
+			return HTML(text_from_template('error', {'msg': error}))
+		msg = [f for f in modes[current_mode].status_bar().splitlines() if f.strip()]
+		return HTML(' \u2502 '.join(msg))
 
 	title_bar = Window(
 			content=FormattedTextControl(get_title_bar_content),
