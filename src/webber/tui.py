@@ -12,7 +12,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
 from webber.utils import doc, clip_string, make_absolute_url
-from webber.context import context
+from webber.context import context, dynamic_context
 from webber.tui_lib.cmd_binding import CommandBindings
 from webber.tui_lib.nav_history import NavigationHistory
 from webber.tui_lib.dyn_completer import DynamicCompleter
@@ -31,6 +31,7 @@ from webber.algorithms.textmanip import (
 ##############################################################################
 
 @context
+@dynamic_context
 def tui_session(navigate, render):
 	kb = KeyBindings()
 	commands = CommandBindings()
@@ -40,6 +41,7 @@ def tui_session(navigate, render):
 	version = tui_session.__context__.version
 	styles = tui_session.__context__.config.repl.styles
 	url = tui_session.__context__.args.url
+	logo = f"{appname[:3].upper()}{appname[3:].lower()}"
 	orig_content = []
 	links = []
 	vofs = 0
@@ -53,7 +55,7 @@ def tui_session(navigate, render):
 			"status_bar": lambda: text_from_template('sb_general', {
 					"appname": appname,
 					"version": version,
-					"url": clip_string(url if url else "", dynamic_width() // 2),
+					"url": clip_string(url if url else "", dynamic_width() - 20),
 					"position": vofs,
 					"total_lines": total_lines,
 					"search_rel_pos": searcher.rel_pos(),
@@ -95,6 +97,7 @@ def tui_session(navigate, render):
 	def dynamic_height():
 		n = 0
 		n += 1 # minus status-bar height
+		n += 1 # minus title-bar height
 		if current_mode == "edit":
 			n += 1 # minus prompt line
 		row = get_app().output.get_size().rows
@@ -447,7 +450,17 @@ def tui_session(navigate, render):
 			f.write(content)
 
 
+	title_bar = Window(
+			content=FormattedTextControl(
+				lambda: HTML(f"<b>{logo}:</b> * <i>{tui_session.__get_context__('doc_title')}</i> *")
+			),
+			height=1,
+			width=dynamic_width,
+			style="class:title-bar",
+			)
+
 	root_container = HSplit([
+		title_bar,
 		content_area,
 		ConditionalContainer(
 			content=prompt_area,

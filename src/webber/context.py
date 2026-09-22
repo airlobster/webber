@@ -13,3 +13,8 @@ def context(f):
 	global __context
 	f.__context__ = __context
 	return f
+
+def dynamic_context(f):
+	global __context
+	f.__get_context__ = lambda key: getattr(__context, key, None)
+	return f
