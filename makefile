@@ -34,7 +34,8 @@ dist:
 
 checkin:
 	@date > TIMESTAMP
-	git pull && git add . && git commit -m "$(shell git diff . | grep -E '^[\+\-][^\+\-]+' | head -n 20)" && git push
+	git diff . | grep -E '^[\+\-][^\+\-]+' | head -n 20 > /tmp/git_diff_summary.txt
+	git pull && git add . && git commit -F /tmp/git_diff_summary.txt && git push
 
 tree:
 	@tree -CF --dirsfirst --charset=utf8 -I __pycache__
