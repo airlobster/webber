@@ -52,9 +52,9 @@ def load_config(appname:str) -> type:
 		"repl": {
 			"beep": True,
 			"styles": {
-				"input-box": "reverse",
+				"input-box": "fg:#000000 bg:#4EC9B0 italic",
 				"status-bar": "fg:#000000 bg:#ffffff",
-				"error": "bg:#ff0000 reverse",
+				"error": "fg:#ff0000",
 			}
 		}
 	}

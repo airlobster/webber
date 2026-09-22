@@ -20,6 +20,8 @@ from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.tui_lib.search import Searcher
 from webber.jinja2_utils import generated_page, text_from_template
 from webber.profile import profiled
+from webber.ansi import ANSI
+
 from webber.algorithms.textmanip import (
 	get_filler,
 	add_highlighting,
@@ -58,7 +60,7 @@ def tui_session(navigate, render):
 				}),
 		}),
 		"edit": SimpleNamespace({
-			"status_bar": lambda: text_from_template('sbar_editing')
+			"status_bar": lambda: text_from_template('sb_editing')
 		}),
 	}
 
@@ -193,7 +195,7 @@ def tui_session(navigate, render):
 		if error:
 			return HTML(text_from_template('error', {'msg': clip_string(error, dynamic_width()-4)}))
 		msg = [f for f in modes[current_mode].status_bar().splitlines() if f.strip()]
-		return HTML(' \u2551 '.join(msg))
+		return HTML(' \u2502 '.join(msg))
 
 	content_area = Window(
 			content=FormattedTextControl(get_visible_content),
@@ -204,7 +206,7 @@ def tui_session(navigate, render):
 	prompt_area = TextArea(
 		height=1,
 		width=dynamic_width,
-		prompt=HTML('<b>: </b>'),
+		prompt=HTML(f'<b>:</b> '),
 		multiline=False,
 		accept_handler=handle_submit,
 		history=history,
@@ -250,7 +252,9 @@ def tui_session(navigate, render):
 	@kb.add("escape", filter=is_mode("main"))
 	@doc("Return to view mode")
 	def _(event):
+		nonlocal error
 		searcher.reset()
+		error = None
 
 	@kb.add("escape", filter=is_mode("edit"))
 	@doc("Return to view mode")
@@ -420,7 +424,6 @@ def tui_session(navigate, render):
 		with generated_page("about") as u:
 			nav_to(u)
 
-	@profiled
 	@commands.add("find", help="Search within the current page")
 	def search_command(*args):
 		nonlocal searcher
@@ -428,6 +431,21 @@ def tui_session(navigate, render):
 		if args:
 			searcher.search(get_adapted_content(), *args)
 			goto_next_search_match()
+
+	@commands.add("save", help="Save the current page")
+	def save_command(*args):
+		nonlocal url
+		if not url:
+			beep()
+			return
+		# Implement the save functionality here
+		if len(args) < 1:
+			beep()
+			raise ValueError("No filename provided for save command")
+		content = ANSI.strip(''.join(get_adapted_content()))
+		with open(args[0], "w") as f:
+			f.write(content)
+
 
 	root_container = HSplit([
 		content_area,
