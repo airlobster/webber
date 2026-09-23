@@ -1,4 +1,5 @@
 import sys
+from types import SimpleNamespace
 from typing import Tuple
 import argparse
 import shlex
@@ -9,32 +10,55 @@ class UnparsableArgumentParser(argparse.ArgumentParser):
 		super().__init__(*args, **kwargs)
 
 	def unparse(self, parsed:argparse.Namespace, exclude:Tuple[str]=[]) -> tuple[str, ...]:
-		# map destinations to their corresponding option strings
-		options = {a.dest:a.option_strings[-1] for a in self._actions if a.option_strings}
+		def flatten(a):
+			if isinstance(a, list):
+				for e in a:
+					yield from flatten(e)
+			else:
+				yield shlex.quote(a)
 
-		# Identify positional arguments by checking which actions have no option strings
-		positional_keys = [action.dest for action in self._actions if not action.option_strings]
-		positionals = [getattr(parsed, e) for e in positional_keys]
+		if exclude is None:
+			exclude = []
+
+		# map some important info from non-positional actions to their dest
+		dests = {
+			a.dest:SimpleNamespace(option=a.option_strings[-1], default=a.default)
+			for a in self._actions
+			if a.option_strings
+			}
+
+		# collect positional arguments into a dictionary
+		positionals = {
+			a.dest:getattr(parsed, a.dest)
+			for a in self._actions
+			if not a.option_strings
+			}
 
 		# Extract non-positional arguments into a dictionary, excluding specified keys
+		# and those that are set to their default value
 		d = {
 			k:v for k,v in vars(parsed).items()
-			if k not in exclude and k not in positional_keys
+			if (k not in exclude) and (k not in positionals.keys()) and (v != dests[k].default or dests[k].default == argparse.SUPPRESS)
 			}
 
 		# Separate arguments into those with values and boolean flags
 		with_values = [
-			f"{options[k]}={shlex.quote(str(v))}"
+			[ dests[k].option, v ]
 			for k,v in d.items()
 			if not isinstance(v, bool)
 			]
 		without_values = [
-			f"{options[k]}"
+			f"{dests[k].option}"
 			for k,v in d.items()
 			if isinstance(v, bool) and v
 			]
 
 		# Combine all elements into the final command-line argument tuple
-		elements = tuple([sys.argv[0], *with_values, *without_values, *positionals])
+		args_out = tuple([
+			shlex.quote(sys.argv[0]),
+			*flatten(with_values),
+			*without_values,
+			*positionals.values()
+			])
 
-		return elements
+		return args_out
