@@ -61,7 +61,7 @@ class CachedIterator:
 
 	def __next__(self):
 		if self.q:
-			return self.q.pop(0)
+			return self.q.pop()
 		return next(self.iterable)
 
 	def unget(self, value):
