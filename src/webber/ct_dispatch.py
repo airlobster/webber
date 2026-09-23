@@ -3,7 +3,7 @@ from typing import Tuple
 from fnmatch import fnmatch
 from urllib.parse import urlparse, unquote
 from webber.content_types.ct_html import html_lexer, html_render
-from webber.content_types.raw import raw_tokenizer, raw_renderer
+from webber.content_types.ct_raw import raw_tokenizer, raw_renderer
 
 ContentTypeHandlers = namedtuple("ContentTypeHandlers", [
 		"schema_pattern", "content_type_pattern", "url_extractor", "tokenizer", "renderer"
