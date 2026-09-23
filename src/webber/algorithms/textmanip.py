@@ -4,7 +4,7 @@ from webber.context import context
 from webber.profile import profiled
 
 # Create a filler function that is aware of ANSI escape sequences and handles text wrapping correctly.
-def get_filler(*, width: int, wrap_thresh:int=15, tab_width:int=4) -> Callable[[Iterable[str]], Iterable[str]]:
+def get_filler(*, width: int, wrap_thresh:int=15, tab_width:int=4, add_hyphen:bool=False) -> Callable[[Iterable[str]], Iterable[str]]:
 	ansi = []
 	in_ansi = False
 	col = 0
@@ -50,6 +50,8 @@ def get_filler(*, width: int, wrap_thresh:int=15, tab_width:int=4) -> Callable[[
 					continue
 				if col >= width:
 					# hard break using a hyphen and newline
+					if add_hyphen:
+						buf.append('-')
 					buf.append('\n')
 					yield from flush()
 				col += 1
