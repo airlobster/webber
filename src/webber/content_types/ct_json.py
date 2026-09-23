@@ -2,6 +2,7 @@ from typing import Dict, Iterable
 from types import SimpleNamespace
 import re
 from webber.context import context
+from webber.ansi import ANSI
 
 ##############################################################################
 
@@ -178,7 +179,7 @@ def json_render(tokens:Iterable[SimpleNamespace], indent:str|int=4):
 			yield " "
 		# reset color if palette is used
 		if color:
-			yield "\x1b[0m"
+			yield ANSI.RESET
 
 ##############################################################################
 

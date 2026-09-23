@@ -106,7 +106,7 @@ def tui_session(navigate, render):
 		return row - n
 
 	def dynamic_width():
-		return get_app().output.get_size().columns - 2
+		return get_app().output.get_size().columns - 1
 
 	def get_adapted_content():
 		nonlocal orig_content
