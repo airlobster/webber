@@ -125,7 +125,7 @@ class TagBaseBehavior:
 		self.tag = ev.tag if ev else None
 		self.attrs = dict(ev.attrs) if ev and ev.attrs else {}
 		self.context = context
-		self.color = getattr(TagBaseBehavior.__context__.config.palette, self.tag, None) if self.tag else None
+		self.color = getattr(TagBaseBehavior.__context__.config.palette.html, self.tag, '') if self.tag else None
 		self.tagid = TagBaseBehavior.tagid_counter
 		TagBaseBehavior.tagid_counter += 1
 
@@ -145,13 +145,13 @@ class TagBaseBehavior:
 			self.children.append(TextItemBehavior(self, e.data))
 
 	def render(self):
-		use_color = self.color and self.color != TagBaseBehavior.__context__.config.palette.none
+		use_color = self.color and self.color != ANSI.RESET
 		for child in self.children:
 			if use_color:
 				yield self.color
 			yield from child.render()
 			if use_color:
-				yield TagBaseBehavior.__context__.config.palette.none
+				yield ANSI.RESET
 
 	def dispatch(self, e:SimpleNamespace):
 		if e.tag == 'title':
@@ -286,8 +286,8 @@ class ListItemBehavior(IgnoreWhitespaces):
 	def render(self):
 		if not self.has_valid_content():
 			return
-		bullet_color = getattr(TagBaseBehavior.__context__.config.palette, 'li_bullet')
-		indent = getattr(TagBaseBehavior.__context__.config.palette, 'indent', '  ')
+		bullet_color = getattr(TagBaseBehavior.__context__.config.palette.html, 'li_bullet', '')
+		indent = getattr(TagBaseBehavior.__context__.config.palette.html, 'indent', '  ')
 		for child in self.children:
 			if child.tag != 'li':
 				continue
@@ -297,7 +297,7 @@ class ListItemBehavior(IgnoreWhitespaces):
 				yield bullet_color
 			yield f'\n{indent*(self._nest+1)}{''.join(self.render_bullet())} '
 			if bullet_color:
-				yield TagBaseBehavior.__context__.config.palette.none
+				yield ANSI.RESET
 			yield ''.join(child.render()).lstrip()
 		yield '\n'
 
@@ -375,9 +375,10 @@ class LinkTagBehavior(IgnoreWhitespaces):
 			LinkTagBehavior.link_id_counter += 1
 			linkid = LinkTagBehavior.link_id_counter
 			self.context.links.append(href)
-			yield TagBaseBehavior.__context__.config.palette.link_index
-			yield f"{TagBaseBehavior.__context__.config.palette.link_index}{{{linkid}}}"
-			yield TagBaseBehavior.__context__.config.palette.none
+			color = getattr(TagBaseBehavior.__context__.config.palette.html, 'link_index', '')
+			yield color
+			yield f"{color}{{{linkid}}}"
+			yield ANSI.RESET
 		yield self.one_liner(super().render())
 		yield ' '
 
@@ -398,7 +399,7 @@ class PreformattedTagBehavior(TagBaseBehavior):
 
 	# (we override the render method just so we can add indentation)
 	def render(self):
-		indent = getattr(TagBaseBehavior.__context__.config.palette, 'indent', ' '*3)
+		indent = getattr(TagBaseBehavior.__context__.config.palette.html, 'indent', ' '*3)
 		yield '\n\n'
 		lines = ''.join(super().render()).split('\n')
 		for line in lines:
@@ -440,7 +441,7 @@ class HeaderElementBehavior(IgnoreWhitespaces):
 		yield self.color
 		yield ANSI.DIM # dim
 		yield f"{self.hid}) "
-		yield TagBaseBehavior.__context__.config.palette.none
+		yield ANSI.RESET
 		# header content
 		yield self.one_liner(super().render()).strip()
 		yield '\n\n'
@@ -478,10 +479,10 @@ class TableTagBehavior(TagBaseBehavior):
 			if e.tag == 'th' or e.tag == 'td':
 				self.table[-1][-1] = ' '.join(self.table[-1][-1])
 				# add styling
-				color = getattr(TableTagBehavior.__context__.config.palette, e.tag, '')
+				color = getattr(TableTagBehavior.__context__.config.palette.html, e.tag, '')
 				if color:
 					c = self.table[-1][-1]
-					c = f"{color}{c}{TableTagBehavior.__context__.config.palette.none}"
+					c = f"{color}{c}{ANSI.RESET}"
 					self.table[-1][-1] = c
 				self.in_cell = None
 			elif e.tag == 'table':

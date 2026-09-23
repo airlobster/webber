@@ -16,28 +16,42 @@ def load_config(appname:str) -> type:
 	]
 	namespace = {
 		"palette" : {
-			"none": ANSI.RESET,
-			"title": f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_HEX(color_scheme[5])}",
-			"a": ANSI.FG_HEX(color_scheme[2]),
-			"link_index": f"{ANSI.FG_HEX(color_scheme[2])}{ANSI.ITALIC}{ANSI.DIM}",
-			"h1": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
-			"h2": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
-			"h3": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
-			"h4": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
-			"h5": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
-			"h6": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
-			"pre": f"{ANSI.ITALIC}{ANSI.FG_HEX(color_scheme[1])}",
-			"th": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[0])}",
-			"td": ANSI.ITALIC,
-			"code": ANSI.ITALIC,
-			"b": ANSI.BOLD,
-			"strong": ANSI.BOLD,
-			"b": ANSI.BOLD,
-			"i": ANSI.ITALIC,
-			"li_bullet": ANSI.FG_HEX(color_scheme[6]),
-			"indent": "  ",
-			"curr_highlight": ANSI.BOLD + ANSI.FG_HEX('#000000') + ANSI.BG_HEX(color_scheme[1]),
-			"highlight": ANSI.BOLD + ANSI.FG_HEX('#ffffff') + ANSI.BG_HEX('#555555'),
+			"html": {
+				"title": f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_HEX(color_scheme[5])}",
+				"a": ANSI.FG_HEX(color_scheme[2]),
+				"link_index": f"{ANSI.FG_HEX(color_scheme[2])}{ANSI.ITALIC}{ANSI.DIM}",
+				"h1": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
+				"h2": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
+				"h3": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
+				"h4": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
+				"h5": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
+				"h6": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[4])}",
+				"pre": f"{ANSI.ITALIC}{ANSI.FG_HEX(color_scheme[1])}",
+				"th": f"{ANSI.BOLD}{ANSI.FG_HEX(color_scheme[0])}",
+				"td": ANSI.ITALIC,
+				"code": ANSI.ITALIC,
+				"b": ANSI.BOLD,
+				"strong": ANSI.BOLD,
+				"b": ANSI.BOLD,
+				"i": ANSI.ITALIC,
+				"li_bullet": ANSI.FG_HEX(color_scheme[6]),
+				"indent": "  ",
+				"curr_highlight": ANSI.BOLD + ANSI.FG_HEX('#000000') + ANSI.BG_HEX(color_scheme[1]),
+				"highlight": ANSI.BOLD + ANSI.FG_HEX('#ffffff') + ANSI.BG_HEX('#555555'),
+			},
+			"json": {
+				"OPEN_ARRAY": ANSI.FG_HEX(color_scheme[2]),
+				"CLOSE_ARRAY": ANSI.FG_HEX(color_scheme[2]),
+				"OPEN_OBJECT": ANSI.FG_HEX(color_scheme[2]),
+				"CLOSE_OBJECT": ANSI.FG_HEX(color_scheme[2]),
+				"TRUE": ANSI.FG_HEX(color_scheme[3]),
+				"FALSE": ANSI.FG_HEX(color_scheme[3]),
+				"NULL": ANSI.FG_HEX(color_scheme[3]),
+				"COMMA": ANSI.FG_HEX(color_scheme[4]),
+				"COLON": ANSI.FG_HEX(color_scheme[4]),
+				"STRING": ANSI.FG_HEX(color_scheme[5]),
+				"NUMBER": ANSI.FG_HEX(color_scheme[6]),
+			}
 		},
 		"html": {
 			"blacklist": [
@@ -59,7 +73,7 @@ def load_config(appname:str) -> type:
 		},
 		"http": {
 			"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-			"accept": "text/html, text/plain"
+			"accept": "text/html, text/plain, application/json"
 		},
 		"tables": {
 			"style": "plain"
@@ -75,7 +89,9 @@ def load_config(appname:str) -> type:
 		}
 	}
 	def dict_to_namespace(d):
-		return SimpleNamespace(**{k:SimpleNamespace(**v) if isinstance(v, dict) else v for k,v in d.items()})
+		if isinstance(d, dict):
+			return SimpleNamespace(**{k:dict_to_namespace(v) for k,v in d.items()})
+		return d
 	pathname = Path(f"~/.{appname}.json").expanduser().resolve()
 	try:
 		with open(pathname, "r") as f:

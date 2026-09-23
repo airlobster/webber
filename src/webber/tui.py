@@ -41,7 +41,7 @@ def tui_session(navigate, render):
 	history = WebberTuiHistory()
 	appname = tui_session.__context__.appname
 	version = tui_session.__context__.version
-	styles = tui_session.__context__.config.repl.styles
+	styles = vars(tui_session.__context__.config.repl.styles)
 	url = tui_session.__context__.args.url
 	logo = f"webR v.{version}"
 	orig_content = []
@@ -423,7 +423,8 @@ def tui_session(navigate, render):
 			f.write(content)
 
 	def get_title_bar_content():
-		t = html.escape(tui_session.__get_context__('doc_title'))
+		title = tui_session.__get_context__('doc_title')
+		t = html.escape(title) if title else "-No Title-"
 		return HTML(f"<b>{logo}:</b> <i>{t}</i>")
 
 	def get_status_bar():
