@@ -6,7 +6,7 @@ import webber.log as log
 from webber.config import configurable, reinit_config
 from webber.context import set_context
 from webber.context import context
-from webber.ct_dispatch import get_content_type_handler
+from webber.ct_dispatch import get_content_handler, extract_url
 from webber.utils import (
 	intercept,
 	handle_broken_pipe,
@@ -44,10 +44,10 @@ def download_content(url:str):
 
 @profiled
 def navigate(url:str, links:List[str]=None) -> Iterable[str]:
-	r = download_content(url)
+	r = download_content(extract_url(url))
 	content_type = r.headers.get('Content-Type', '').split(';')[0]
 	encoding = r.encoding if r.encoding else 'utf-8'
-	tokenizer, renderer = get_content_type_handler(content_type)
+	tokenizer, renderer = get_content_handler(url, content_type)
 	tokens = intercept(tokenizer(r.content.decode(encoding)), log.debug)
 	return renderer(tokens, links)
 

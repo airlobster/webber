@@ -50,7 +50,7 @@ def get_filler(*, width: int, wrap_thresh:int=15, tab_width:int=4) -> Callable[[
 					continue
 				if col >= width:
 					# hard break using a hyphen and newline
-					buf.append('-\n')
+					buf.append('\n')
 					yield from flush()
 				col += 1
 		# flush any remaining text in the buffer

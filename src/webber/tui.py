@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 import re
 import html
+from urllib.parse import quote
 from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
 from prompt_toolkit.key_binding import KeyBindings
@@ -105,7 +106,7 @@ def tui_session(navigate, render):
 		return row - n
 
 	def dynamic_width():
-		return get_app().output.get_size().columns - 1
+		return get_app().output.get_size().columns - 2
 
 	def get_adapted_content():
 		nonlocal orig_content
@@ -374,6 +375,10 @@ def tui_session(navigate, render):
 			# convert the link index to an absolute URL
 			next_url = make_absolute_url(url, links[index])
 		nav_to(next_url)
+
+	@commands.add("source", help="Show current page's source", add_to_history=False)
+	def source_command(*args):
+		nav_to(f"source://{quote(url)}")
 
 	@commands.add("reload", help="Reload the current page")
 	def reload_command(*args):
