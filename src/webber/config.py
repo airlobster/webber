@@ -4,7 +4,12 @@ import json
 from webber.ansi import ANSI
 from webber import log
 
-def load_config(appname:str) -> type:
+class ConfigSection(SimpleNamespace):
+	def __init__(self, **kwargs):
+		super().__init__(**kwargs)
+
+
+def load_config(appname:str) -> ConfigSection:
 	color_scheme = [
 		'#C585C0',
 		'#4EC9B0',
@@ -91,7 +96,7 @@ def load_config(appname:str) -> type:
 	}
 	def dict_to_namespace(d):
 		if isinstance(d, dict):
-			return SimpleNamespace(**{k:dict_to_namespace(v) for k,v in d.items()})
+			return ConfigSection(**{k:dict_to_namespace(v) for k,v in d.items()})
 		return d
 	pathname = Path(f"~/.{appname}.json").expanduser().resolve()
 	try:

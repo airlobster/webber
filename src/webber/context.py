@@ -16,5 +16,5 @@ def context(f):
 
 def dynamic_context(f):
 	global __context
-	f.__get_context__ = lambda key: getattr(__context, key, None)
+	f.__get_context__ = lambda key, default=None: getattr(__context, key, default)
 	return f
