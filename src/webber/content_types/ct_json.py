@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import re
 from webber.context import context
 from webber.ansi import ANSI
+from webber.algorithms.stack import Stack
 
 ##############################################################################
 
@@ -54,18 +55,18 @@ def json_lexer(tab_width:int=4):
 class CachedIterator:
 	def __init__(self, iterable: Iterable):
 		self.iterable = iter(iterable)
-		self.q = []
+		self.stack = Stack()
 
 	def __iter__(self):
 		return self
 
 	def __next__(self):
-		if self.q:
-			return self.q.pop()
+		if self.stack:
+			return self.stack.pop()
 		return next(self.iterable)
 
 	def unget(self, value):
-		self.q.append(value)
+		self.stack.push(value)
 
 ##############################################################################
 
@@ -101,8 +102,8 @@ def json_parser(tokens:Iterable[SimpleNamespace]):
 			if token.type == "CLOSE_OBJECT":
 				it.unget(token)
 				break
-			it.unget(token)
 			yield SimpleNamespace(type="BEGIN_OBJECT_MEMBER", value=None)
+			it.unget(token)
 			yield from parse_object_member()
 			token = next(it)
 			if token.type == "COMMA":
@@ -128,8 +129,8 @@ def json_parser(tokens:Iterable[SimpleNamespace]):
 			if token.type == "CLOSE_ARRAY":
 				it.unget(token)
 				break
-			it.unget(token)
 			yield SimpleNamespace(type="BEGIN_ARRAY_ELEMENT", value=None)
+			it.unget(token)
 			yield from parse_value()
 			token = next(it)
 			if token.type == "COMMA":
@@ -182,9 +183,3 @@ def json_render(tokens:Iterable[SimpleNamespace], indent:str|int=4):
 			yield ANSI.RESET
 
 ##############################################################################
-
-def json_lexer_wrapper(content:str):
-	yield from json_lexer()(content)
-
-def json_renderer_wrapper(tokens:Iterable[SimpleNamespace], links):
-	yield from json_render(json_parser(tokens), indent=4)
