@@ -34,7 +34,7 @@ content_type_handlers = [
 		content_type_pattern = "*",
 		url_extractor = lambda url: unquote(url[len("view-source://"):]),
 		tokenizer = raw_tokenizer,
-		renderer = raw_renderer
+		renderer = lambda token, links: raw_renderer(token)
 	),
 ]
 
