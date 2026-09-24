@@ -48,13 +48,10 @@ def get_content_handler(url:str, content_type:str) -> Tuple|None:
 			return (h.tokenizer, h.renderer)
 	raise ValueError(f"Unsupported content type: {content_type}")
 
-
+# Extract the appropriate URL based on the URL scheme
 def extract_url(url:str) -> str:
 	scheme = urlparse(url).scheme
-	h = next((
-		h for h in content_type_handlers
-		if fnmatchcase(scheme, h.schema_pattern)
-		),
-		content_type_handlers[0]
-	)
-	return h.url_extractor(url)
+	for h in content_type_handlers:
+		if fnmatchcase(scheme, h.schema_pattern):
+			return h.url_extractor(url)
+	return lambda url: url
