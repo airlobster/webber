@@ -111,3 +111,10 @@ def make_absolute_url(base:str, url:str) -> str:
 	if parse.urlparse(url).netloc:
 		return url
 	return parse.urljoin(base, url)
+
+
+def find(iterable:Iterable[Any], predicate:Callable[[Any], bool]) -> Any|None:
+	for item in iterable:
+		if callable(predicate) and predicate(item):
+			return item
+	return None

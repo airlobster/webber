@@ -5,6 +5,7 @@ from fnmatch import fnmatchcase
 from webber.content_types.ct_html import html_lexer, html_render
 from webber.content_types.ct_raw import raw_tokenizer, raw_renderer
 from webber.content_types.ct_json import json_lexer, json_parser, json_render
+from webber.utils import find
 
 ContentTypeHandlers = namedtuple("ContentTypeHandlers", [
 		"schema_pattern", "content_type_pattern", "url_extractor", "tokenizer", "renderer"
@@ -41,17 +42,21 @@ content_type_handlers = [
 # Get the appropriate content handler based on the URL scheme and content type
 def get_content_handler(url:str, content_type:str) -> Tuple|None:
 	scheme = urlparse(url).scheme
-	for h in content_type_handlers:
-		content_type_matches = fnmatchcase(content_type, h.content_type_pattern)
-		scheme_matches = fnmatchcase(scheme, h.schema_pattern)
-		if content_type_matches and scheme_matches:
-			return (h.tokenizer, h.renderer)
+	h = find(
+		content_type_handlers,
+		lambda e: fnmatchcase(content_type, e.content_type_pattern) and fnmatchcase(scheme, e.schema_pattern)
+		)
+	if h:
+		return (h.tokenizer, h.renderer)
 	raise ValueError(f"Unsupported content type: {content_type}")
 
 # Extract the appropriate URL based on the URL scheme
 def extract_url(url:str) -> str:
 	scheme = urlparse(url).scheme
-	for h in content_type_handlers:
-		if fnmatchcase(scheme, h.schema_pattern):
-			return h.url_extractor(url)
-	return lambda url: url
+	h = find(
+		content_type_handlers,
+		lambda e: fnmatchcase(scheme, e.schema_pattern)
+	)
+	if h:
+		return h.url_extractor(url)
+	return url
