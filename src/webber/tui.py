@@ -378,7 +378,7 @@ def tui_session(navigate, render):
 
 	@commands.add("source", help="Show current page's source", add_to_history=False)
 	def source_command(*args):
-		nav_to(f"source://{quote(url)}")
+		nav_to(f"view-source://{quote(url)}")
 
 	@commands.add("reload", help="Reload the current page")
 	def reload_command(*args):

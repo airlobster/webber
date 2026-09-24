@@ -30,9 +30,9 @@ content_type_handlers = [
 	),
 	# PAGE SOURCE
 	ContentTypeHandlers(
-		schema_pattern = "source",
+		schema_pattern = "view-source",
 		content_type_pattern = "*",
-		url_extractor = lambda url: unquote(url[len("source://"):]),
+		url_extractor = lambda url: unquote(url[len("view-source://"):]),
 		tokenizer = raw_tokenizer,
 		renderer = raw_renderer
 	),
