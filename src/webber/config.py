@@ -45,18 +45,18 @@ def load_config(appname:str) -> ConfigSection:
 				"highlight": ANSI.BOLD + ANSI.FG_HEX('#ffffff') + ANSI.BG_HEX('#555555'),
 			},
 			"json": {
-				"KEY": ANSI.FG_HEX(color_scheme[4]),
-				"OPEN_ARRAY": ANSI.FG_HEX(color_scheme[6]),
-				"CLOSE_ARRAY": ANSI.FG_HEX(color_scheme[6]),
-				"OPEN_OBJECT": ANSI.FG_HEX(color_scheme[6]),
-				"CLOSE_OBJECT": ANSI.FG_HEX(color_scheme[6]),
-				"COMMA": ANSI.FG_HEX(color_scheme[6]),
-				"COLON": ANSI.FG_HEX(color_scheme[6]),
-				"TRUE": ANSI.FG_HEX(color_scheme[5]),
-				"FALSE": ANSI.FG_HEX(color_scheme[5]),
-				"NULL": ANSI.FG_HEX(color_scheme[5]),
-				"STRING": ANSI.FG_HEX(color_scheme[2]),
-				"NUMBER": ANSI.FG_HEX(color_scheme[1]),
+				"KEY": ANSI.FG_RGB(129, 161, 193),
+				"STRING": ANSI.FG_RGB(163, 190, 140),
+				"NUMBER": ANSI.FG_RGB(208, 135, 112),
+				"TRUE": ANSI.FG_RGB(180, 142, 173),
+				"FALSE": ANSI.FG_RGB(180, 142, 173),
+				"NULL": ANSI.FG_RGB(235, 203, 139),
+				"COMMA": ANSI.FG_RGB(76, 86, 106),
+				"COLON": ANSI.FG_RGB(76, 86, 106),
+				"OPEN_ARRAY": ANSI.FG_RGB(216, 222, 233),
+				"CLOSE_ARRAY": ANSI.FG_RGB(216, 222, 233),
+				"OPEN_OBJECT": ANSI.FG_RGB(216, 222, 233),
+				"CLOSE_OBJECT": ANSI.FG_RGB(216, 222, 233),
 			}
 		},
 		"html": {
@@ -87,10 +87,10 @@ def load_config(appname:str) -> ConfigSection:
 		"repl": {
 			"beep": True,
 			"styles": {
-				"title-bar": "bg:#81587F fg:#ffffff",
-				"input-box": "fg:#000000 bg:#C6C7C8",
-				"status-bar": "bg:#81587F fg:#ffffff",
+				"title-bar": "reverse",
+				"status-bar": "reverse",
 				"error": "fg:#ff0000",
+				"logo": "fg:#81587F bg:#ffffff"
 			}
 		}
 	}

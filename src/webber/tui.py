@@ -14,7 +14,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
 from webber.utils import doc, clip_string, make_absolute_url, set_breakpoint
-from webber.context import context, dynamic_context
+from webber.context import context, dynamic_context, set_context
 from webber.tui_lib.cmd_binding import CommandBindings
 from webber.tui_lib.nav_history import NavigationHistory
 from webber.tui_lib.dyn_completer import DynamicCompleter
@@ -76,6 +76,7 @@ def tui_session(navigate, render):
 	def nav_to(next_url):
 		nonlocal orig_content, url, links, error, vofs, searcher, history
 		try:
+			set_context(doc_title=None)
 			tmp_links = []
 			orig_content = list(render(navigate(next_url, links=tmp_links)))
 			links = tmp_links
@@ -425,7 +426,7 @@ def tui_session(navigate, render):
 	def get_title_bar_content():
 		title = tui_session.__get_context__('doc_title')
 		t = html.escape(title) if title else "-No Title-"
-		return HTML(f"<b>{logo}:</b> <i>{t}</i>")
+		return HTML(f"<logo> {logo} </logo> <i>{t}</i>")
 
 	def get_status_bar():
 		if error:
@@ -449,7 +450,7 @@ def tui_session(navigate, render):
 	prompt_area = TextArea(
 		height=1,
 		width=dynamic_width,
-		prompt=HTML(f'<b>:</b> '),
+		prompt=HTML(f'<b>:</b>'),
 		multiline=False,
 		accept_handler=handle_submit,
 		history=history,
