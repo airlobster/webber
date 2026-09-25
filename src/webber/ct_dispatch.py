@@ -4,7 +4,7 @@ from urllib.parse import urlparse, unquote
 from fnmatch import fnmatchcase
 from webber.content_types.ct_html import html_lexer, html_render
 from webber.content_types.ct_raw import raw_tokenizer, raw_renderer
-from webber.content_types.ct_json import json_lexer, json_parser, json_render
+from webber.content_types.ct_json import json_lexer_wrapper, json_renderer_wrapper
 from webber.utils import find
 
 ContentTypeHandlers = namedtuple("ContentTypeHandlers", [
@@ -26,8 +26,8 @@ content_type_handlers = [
 		schema_pattern = "http?",
 		content_type_pattern = "application/json",
 		url_extractor = lambda url: url,
-		tokenizer = lambda content: json_lexer()(content),
-		renderer = lambda tokens, links: json_render(json_parser(tokens), indent=4)
+		tokenizer = lambda content: json_lexer_wrapper(content),
+		renderer = lambda tokens, links: json_renderer_wrapper(tokens)
 	),
 	# PAGE SOURCE
 	ContentTypeHandlers(

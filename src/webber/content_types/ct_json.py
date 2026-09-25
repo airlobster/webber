@@ -1,9 +1,8 @@
-from typing import Dict, Iterable
-from types import SimpleNamespace
+from typing import Dict, Iterable, Any
+from collections import namedtuple
 import re
-from webber.context import context
-from webber.ansi import ANSI
-from webber.algorithms.stack import Stack
+
+JsonToken = namedtuple("JsonToken", ["type", "value", "pos"], defaults=[None, None])
 
 ##############################################################################
 
@@ -19,34 +18,35 @@ def json_lexer(tab_width:int=4):
 		"NULL": r"null",
 		"COMMA": r",",
 		"COLON": r":",
-		"STRING": r'(?<=")(\\.|[^"\\])*(?=")',
+		"STRING": r'(?<=")([^"\\\\]|\\\\(["\\\\/bfnrt]|u[0-9a-fA-F]{4}))*(?=")',
 		"NUMBER": r"-?\d+(\.\d+)?([eE][+-]?\d+)?",
 	}
 	expr = "|".join(f"(?P<{name}>{pattern})" for name, pattern in token_types.items())
 	regex = re.compile(expr, re.DOTALL | re.MULTILINE)
-	row = 1
-	col = 1
+	row = 0
+	col = 0
 
-	def generate_tokens(s:str):
+	def generate_tokens(iterable:Iterable[str]):
 		def update_position(value):
 			nonlocal row, col
 			for c in value:
 				if c == "\n":
 					row += 1
-					col = 1
+					col = 0
 				elif c == "\t":
 					col += tab_width - (col % tab_width)
 				else:
 					col += 1
-		for match in regex.finditer(s):
-			for name, value in match.groupdict().items():
-				if value is None:
-					continue
-				if name == "WS":
+		for s in iterable:
+			for match in regex.finditer(s):
+				for name, value in match.groupdict().items():
+					if value is None:
+						continue
+					if name == "WS":
+						update_position(value)
+						continue # aside from updating the position, ignore whitespaces
+					yield JsonToken(type=name, value=value, pos=(row+1, col+1))
 					update_position(value)
-					continue # aside from updating the position, ignore whitespaces
-				yield SimpleNamespace(type=name, value=value, pos=(row, col))
-				update_position(value)
 
 	return generate_tokens
 
@@ -55,7 +55,7 @@ def json_lexer(tab_width:int=4):
 class CachedIterator:
 	def __init__(self, iterable: Iterable):
 		self.iterable = iter(iterable)
-		self.stack = Stack()
+		self.stack = []
 
 	def __iter__(self):
 		return self
@@ -66,30 +66,28 @@ class CachedIterator:
 		return next(self.iterable)
 
 	def unget(self, value):
-		self.stack.push(value)
+		self.stack.append(value)
 
 ##############################################################################
 
-def json_parser(tokens:Iterable[SimpleNamespace]):
+def json_parse(tokens:Iterable[JsonToken], validate:bool=True):
 	it = iter(CachedIterator(tokens))
 
 	def expect(token, *expected_types):
-		if token.type not in expected_types:
+		if validate and (token.type not in expected_types):
 			raise ValueError(f"Expected token types {expected_types}, got {token.type}")
 		return token
 
 	def parse_value():
-		token = next(it)
+		token = expect(next(it), "OPEN_ARRAY", "OPEN_OBJECT", "TRUE", "FALSE", "NULL", "NUMBER", "STRING")
+		if token.type in ("TRUE", "FALSE", "NULL", "NUMBER", "STRING"):
+			yield token
+			return
+		it.unget(token)
 		if token.type == "OPEN_ARRAY":
-			it.unget(token)
 			yield from parse_array()
 		elif token.type == "OPEN_OBJECT":
-			it.unget(token)
 			yield from parse_object()
-		elif token.type in ("TRUE", "FALSE", "NULL", "NUMBER", "STRING"):
-			yield token
-		else:
-			raise ValueError(f"Unexpected token: {token}")
 
 	def parse_object():
 		yield expect(next(it), "OPEN_OBJECT")
@@ -102,19 +100,19 @@ def json_parser(tokens:Iterable[SimpleNamespace]):
 			if token.type == "CLOSE_OBJECT":
 				it.unget(token)
 				break
-			yield SimpleNamespace(type="BEGIN_OBJECT_MEMBER", value=None)
+			yield JsonToken(type="BEGIN_OBJECT_MEMBER")
 			it.unget(token)
 			yield from parse_object_member()
 			token = next(it)
 			if token.type == "COMMA":
 				yield token
-				yield SimpleNamespace(type="END_OBJECT_MEMBER", value=None)
+				yield JsonToken(type="END_OBJECT_MEMBER")
 				continue
-			yield SimpleNamespace(type="END_OBJECT_MEMBER", value=None)
+			yield JsonToken(type="END_OBJECT_MEMBER")
 			it.unget(token)
 
 	def parse_object_member():
-		yield SimpleNamespace(type="KEY", value=expect(next(it), "STRING").value) # key
+		yield JsonToken(type="KEY", value=expect(next(it), "STRING").value)
 		yield expect(next(it), "COLON")
 		yield from parse_value()
 
@@ -129,28 +127,83 @@ def json_parser(tokens:Iterable[SimpleNamespace]):
 			if token.type == "CLOSE_ARRAY":
 				it.unget(token)
 				break
-			yield SimpleNamespace(type="BEGIN_ARRAY_ELEMENT", value=None)
+			yield JsonToken(type="BEGIN_ARRAY_ELEMENT")
 			it.unget(token)
 			yield from parse_value()
 			token = next(it)
 			if token.type == "COMMA":
 				yield token
-				yield SimpleNamespace(type="END_ARRAY_ELEMENT", value=None)
+				yield JsonToken(type="END_ARRAY_ELEMENT")
 				continue
-			yield SimpleNamespace(type="END_ARRAY_ELEMENT", value=None)
+			yield JsonToken(type="END_ARRAY_ELEMENT")
 			it.unget(token)
 
 	yield from parse_value()
 
 ##############################################################################
 
-@context
-def json_render(tokens:Iterable[SimpleNamespace], indent:str|int=4):
+def json_build_object(tokens:Iterable[JsonToken]) -> Any:
+	curr = []
+	key = None
+
+	def translate(name, value):
+		if name == "NUMBER":
+			try:
+				return int(value)
+			except ValueError:
+				return float(value)
+		if name == "TRUE":
+			return True
+		if name == "FALSE":
+			return False
+		if name == "NULL":
+			return None
+		return value
+
+	def attach_to_parent(value):
+		nonlocal curr, key
+		if not curr:
+			return
+		parent = curr[-1]
+		if key:
+			parent[key] = value
+			key = None
+		else:
+			parent.append(value)
+
+	for token in tokens:
+		if token.type == "OPEN_ARRAY":
+			e = []
+			attach_to_parent(e)
+			curr.append(e)
+		elif token.type == "CLOSE_ARRAY":
+			o = curr.pop()
+			if not curr:
+				return o
+		elif token.type == "OPEN_OBJECT":
+			e = {}
+			attach_to_parent(e)
+			curr.append(e)
+		elif token.type == "CLOSE_OBJECT":
+			o = curr.pop()
+			if not curr:
+				return o
+		elif token.type == "KEY":
+			key = token.value
+		elif token.type in ("STRING", "NUMBER", "TRUE", "FALSE", "NULL"):
+			v = translate(token.type, token.value)
+			if not curr:
+				return v
+			attach_to_parent(v)
+
+##############################################################################
+
+def json_render(tokens:Iterable[JsonToken], indent:str|int=4, palette:Dict[str, str]={}):
 	indent = " " * indent if isinstance(indent, int) else indent
-	palette = getattr(json_render.__context__.config.palette, "json", SimpleNamespace())
+	palette = {} if palette is None else palette
 	nest = 0
 	for token in tokens:
-		color = getattr(palette, token.type, '')
+		color = palette.get(token.type, '')
 		yield color
 		if token.type in ("OPEN_ARRAY", "OPEN_OBJECT"):
 			yield token.value
@@ -180,6 +233,19 @@ def json_render(tokens:Iterable[SimpleNamespace], indent:str|int=4):
 			yield " "
 		# reset color if palette is used
 		if color:
-			yield ANSI.RESET
+			yield "\x1b[0m"
 
 ##############################################################################
+##############################################################################
+
+from types import SimpleNamespace
+from webber.context import context
+
+def json_lexer_wrapper(content:str):
+	lines = content.splitlines(keepends=True)
+	return json_lexer()(lines)
+
+@context
+def json_renderer_wrapper(tokens:Iterable[JsonToken]):
+	palette = getattr(json_renderer_wrapper.__context__.config.palette, "json", SimpleNamespace())
+	return json_render(json_parse(tokens), palette=vars(palette))
