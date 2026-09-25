@@ -89,7 +89,7 @@ def load_config(appname:str) -> ConfigSection:
 			"styles": {
 				"title-bar": "reverse",
 				"status-bar": "reverse",
-				"error": "fg:#ff0000",
+				"error": "bg:#7f0000",
 				"logo": "fg:#81587F bg:#ffffff"
 			}
 		}

@@ -12,13 +12,16 @@ class CommandBindings:
 		def decorator(f:Callable):
 			if cmd in self.commands:
 				raise ValueError(f"Command '{cmd}' is already registered.")
-			self.commands[cmd] = f
 			if help:
 				f.__doc__ = help
+
 			@wraps(f)
 			def wrapper(*args, **kwargs):
 				f(*args, **kwargs)
 				return add_to_history
+
+			# register the wrapped function
+			self.commands[cmd] = wrapper
 			return wrapper
 		return decorator
 

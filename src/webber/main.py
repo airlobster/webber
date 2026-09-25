@@ -10,7 +10,6 @@ from webber.ct_dispatch import get_content_handler, extract_url
 from webber.utils import (
 	intercept,
 	handle_broken_pipe,
-	get_terminal_size,
 	restart,
 )
 from webber.unparsable_argparse import UnparsableArgumentParser
@@ -93,9 +92,7 @@ def batch_mode():
 	url = batch_mode.__context__.args.url
 	use_colors = args.colors == "always" or (args.colors == "auto" and sys.stdout.isatty())
 	chunks = render_formatted_text(navigate(url, links=None), use_colors)
-	w,_ = get_terminal_size()
-	filler = get_filler(width=w-1)
-	for chunk in filler(chunks):
+	for chunk in chunks:
 		print(chunk, sep='', end='')
 
 

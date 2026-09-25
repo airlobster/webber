@@ -10,6 +10,7 @@ from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContaine
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.widgets import TextArea
 from prompt_toolkit.formatted_text import ANSI as ptk_ansi, HTML
+from prompt_toolkit.data_structures import Point
 from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
@@ -74,11 +75,12 @@ def tui_session(navigate, render):
 
 	@profiled
 	def nav_to(next_url):
-		nonlocal orig_content, url, links, error, vofs, searcher, history
+		nonlocal orig_content, url, links, error, vofs, searcher, history, total_lines
 		try:
 			set_context(doc_title=None)
 			tmp_links = []
 			orig_content = list(render(navigate(next_url, links=tmp_links)))
+			total_lines = len(''.join(orig_content).splitlines(keepends=True))
 			links = tmp_links
 			navhist.add(next_url)
 			url = next_url
@@ -109,38 +111,24 @@ def tui_session(navigate, render):
 	def dynamic_width():
 		return get_app().output.get_size().columns - 1
 
-	def get_adapted_content():
-		nonlocal orig_content
-		filler = get_filler(width=dynamic_width())
-		yield from filler(orig_content)
-
 	@profiled
 	def get_visible_content():
-		nonlocal vofs, total_lines, orig_content, searcher
-		filled_lines = [ *get_adapted_content() ]
-		total_lines = len(filled_lines)
-		# apply search highlighting to the filled content
-		visible = ''.join(add_highlighting(
-				filled_lines,
+		nonlocal orig_content, searcher
+		get_app().layout.focus(prompt_area if current_mode == "edit" else content_area)
+		visible = add_highlighting(
+				orig_content,
 				list(iter(searcher)),
 				searcher.current()
 				)
-			).splitlines(keepends=True)
-		# slice and re-join
-		visible = ''.join(visible[vofs : vofs + dynamic_height()])
-		return ptk_ansi(visible)
+		return ptk_ansi(''.join(visible))
 
 	def scroll_to_search_match():
 		nonlocal vofs, searcher
 		if not searcher:
 			return
-		chunks = get_adapted_content()
 		m = searcher.current()
-		line_index = raw_position_to_line_index(chunks, m[0])
-		is_already_visible = line_index >= vofs and line_index < vofs + dynamic_height()
-		if is_already_visible:
-			return
-		vofs = max(0, line_index - dynamic_height() // 2)
+		line_index = raw_position_to_line_index(orig_content, m[0])
+		vofs = max(0, line_index)
 
 	def goto_next_search_match():
 		nonlocal searcher, vofs
@@ -305,11 +293,10 @@ def tui_session(navigate, render):
 	@doc("Go to the bottom of the document")
 	def _(event):
 		nonlocal vofs, total_lines
-		if vofs >= total_lines - dynamic_height():
+		if vofs >= total_lines - 1:
 			beep()
 			return
-		hpage = dynamic_height()
-		vofs = max(0, total_lines - hpage)
+		vofs = max(0, total_lines - 1)
 
 	# navigate back in history
 	@kb.add("home", eager=True, filter=is_mode("main"))
@@ -405,7 +392,7 @@ def tui_session(navigate, render):
 		nonlocal searcher
 		searcher.reset()
 		if args:
-			searcher.search(get_adapted_content(), *args)
+			searcher.search(orig_content, *args)
 			goto_next_search_match()
 
 	@commands.add("w", help="Save the current page")
@@ -419,7 +406,7 @@ def tui_session(navigate, render):
 		if len(args) < 1:
 			beep()
 			raise ValueError("No filename provided for save command")
-		content = ANSI.strip(''.join(get_adapted_content()))
+		content = ANSI.strip(''.join(orig_content))
 		with open(args[0], "w") as f:
 			f.write(content)
 
@@ -442,9 +429,15 @@ def tui_session(navigate, render):
 			)
 
 	content_area = Window(
-			content=FormattedTextControl(get_visible_content),
+			content=FormattedTextControl(
+				get_visible_content,
+				get_cursor_position=lambda: Point(x=0, y=vofs),
+				show_cursor=True,
+				focusable=True,
+				),
 			height=dynamic_height,
 			width=dynamic_width,
+			wrap_lines=True,
 			)
 
 	prompt_area = TextArea(
@@ -480,7 +473,7 @@ def tui_session(navigate, render):
 
 	tui_app = Application(
 			key_bindings=kb,
-			layout=Layout(root_container),
+			layout=Layout(root_container, focused_element=content_area),
 			full_screen=True,
 			mouse_support=True,
 			style=Style.from_dict(styles),
