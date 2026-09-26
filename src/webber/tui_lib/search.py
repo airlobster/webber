@@ -1,6 +1,5 @@
 from typing import Iterable, Tuple
 import re
-from webber.ansi import ANSI
 
 def get_searcher(*queries):
 	def qfixup(q):

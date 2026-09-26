@@ -113,7 +113,7 @@ def parseCommandLine():
 		parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode")
 		parser.add_argument("-p", "--profile", action="store_true", default=False, help="Enable profiling")
 	args = parser.parse_args()
-	return args, lambda exclude=[]: parser.unparse(args, exclude=exclude)
+	return args, lambda: parser.unparse(args, exclude=["reset"])
 
 
 @configurable
@@ -137,7 +137,7 @@ def main():
 		if args.reset:
 			WebberTuiHistory.delete_file()
 			reinit_config(appname)
-			restart(unparse(["reset"]))
+			restart(unparse())
 			return 0
 
 		# build application context

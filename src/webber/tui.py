@@ -70,9 +70,9 @@ def tui_session(navigate, render):
 	styles = vars(tui_session.__context__.config.repl.styles)
 	url = tui_session.__context__.args.url
 	logo = f"webR v.{version}"
-	buffer = Buffer(read_only=True)
+	uncolored_buffer = Buffer(read_only=True)
 	colored_buffer = Buffer(read_only=True)
-	active_buffer = buffer
+	active_buffer = uncolored_buffer
 	line_offsets = []
 	links = []
 	current_mode = "main"
@@ -105,13 +105,13 @@ def tui_session(navigate, render):
 
 	@profiled
 	def nav_to(next_url):
-		nonlocal url, links, error, searcher, history, line_offsets, buffer, colored_buffer, active_buffer
+		nonlocal url, links, error, searcher, history, line_offsets, uncolored_buffer, colored_buffer, active_buffer
 		try:
 			set_context(doc_title=None)
 			tmp_links = []
 			orig_content = render(navigate(next_url, links=tmp_links))
 			s = ''.join(orig_content)
-			buffer.set_document(Document(text=ANSI.strip(s), cursor_position=0), bypass_readonly=True)
+			uncolored_buffer.set_document(Document(text=ANSI.strip(s), cursor_position=0), bypass_readonly=True)
 			colored_buffer.set_document(Document(text=s, cursor_position=0), bypass_readonly=True)
 			line_offsets = map_line_indexes_to_ofs(active_buffer.text)
 			links = tmp_links
@@ -292,7 +292,7 @@ def tui_session(navigate, render):
 	@kb.add("c-r", filter=is_mode("main"))
 	@doc("Reload the current page")
 	def _(event):
-		nonlocal buffer
+		nonlocal uncolored_buffer
 		save_y = active_buffer.cursor_position
 		handle_submit('reload')
 		active_buffer.cursor_position = save_y
@@ -359,7 +359,7 @@ def tui_session(navigate, render):
 	@commands.add("/", help="Search within the current page")
 	@commands.add("find", help="Search within the current page")
 	def search_command(*args):
-		nonlocal searcher, buffer
+		nonlocal searcher, uncolored_buffer
 		searcher.reset()
 		if args:
 			searcher.search(active_buffer.text, *args)
