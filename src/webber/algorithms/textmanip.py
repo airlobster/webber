@@ -367,15 +367,18 @@ def compress_ansi(chunks:Iterable[str]) -> Iterable[str]:
 						in_ansi = False
 						sansi = ''.join(ansi)
 						if sansi == ANSI.RESET:
+							# reset requested, but we only emit it if there're currently active ANSI codes
 							if active_ansi or active:
 								yield sansi
 								prev_active_ansi.clear()
 								active_ansi.clear()
 								active = False
 						else:
+							# accumulate ansi sequences until there's a content that actually need it
 							active_ansi.append(sansi)
 				else:
 					if active_ansi:
+						# flush accumulated ANSI sequences if they differ from the previous ones
 						if active_ansi != prev_active_ansi:
 							yield ''.join(active_ansi)
 							prev_active_ansi = active_ansi.copy()
