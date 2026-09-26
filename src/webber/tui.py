@@ -44,26 +44,6 @@ class AnsiBufferLexer(Lexer):
 
 ##############################################################################
 
-class HighlightSearchProcessor(Processor):
-	def __init__(self, get_context):
-		super().__init__()
-		self.get_context = get_context
-
-	def apply_transformation(self, ti):
-		line_offsets, searcher = self.get_context()
-		fragments = ti.fragments
-		# if not fragments or not searcher:
-		# 	return Transformation(fragments)
-		# ofs = line_offsets[ti.lineno]
-		# for begin,end in searcher:
-		# 	if begin < ofs or end >= ofs + len(fragments):
-		# 		continue
-		# 	fragments[begin-ofs:end-ofs] = \
-		# 		[(f"class:search-match", fragments[i][1]) for i in range(begin-ofs, end-ofs)]
-		return Transformation(fragments)
-
-##############################################################################
-
 @context
 @dynamic_context
 def tui_session(navigate, render):
@@ -85,12 +65,6 @@ def tui_session(navigate, render):
 	error = None
 	searcher = Searcher()
 
-	def get_colored_line(lineno:int) -> str:
-		lines = colored_buffer.document.lines
-		if 0 <= lineno < len(lines):
-			return lines[lineno]
-		return ""
-
 	modes = {
 		"main": SimpleNamespace({
 			"status_bar": lambda: text_from_template('sb_general', {
@@ -106,6 +80,12 @@ def tui_session(navigate, render):
 			"status_bar": lambda: text_from_template('sb_editing')
 		}),
 	}
+
+	def get_colored_line(lineno:int) -> str:
+		lines = colored_buffer.document.lines
+		if 0 <= lineno < len(lines):
+			return lines[lineno]
+		return ""
 
 	def on_invalidate(*args, **kwargs):
 		get_app().invalidate()
@@ -417,7 +397,7 @@ def tui_session(navigate, render):
 				buffer=active_buffer,
 				focusable=True,
 				lexer=AnsiBufferLexer(get_colored_line),
-				input_processors=[HighlightSearchProcessor(lambda: (line_offsets, searcher))],
+				input_processors=[],
 				),
 			height=dynamic_height,
 			width=dynamic_width,

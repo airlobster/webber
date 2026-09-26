@@ -18,7 +18,7 @@ def get_searcher(*queries):
 		raise ValueError(f"Invalid regex: {e}") from e
 
 	def searcher(chunks:Iterable[str]) -> Iterable[Tuple[int, int]]:
-		raw = ''.join(chunks) # search on the raw content
+		raw = ''.join(chunks)
 		for m in reQuery.finditer(raw):
 			yield m.span()
 
