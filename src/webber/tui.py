@@ -4,17 +4,19 @@ import html
 from urllib.parse import quote
 from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
+from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
-from prompt_toolkit.layout.controls import FormattedTextControl
+from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl
 from prompt_toolkit.widgets import TextArea
-from prompt_toolkit.formatted_text import ANSI as ptk_ansi, HTML
-from prompt_toolkit.data_structures import Point
+from prompt_toolkit.formatted_text import ANSI as ptk_ansi, HTML, to_formatted_text
 from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
-from webber.utils import doc, clip_string, make_absolute_url, set_breakpoint
+from prompt_toolkit.lexers import Lexer
+from prompt_toolkit.layout.processors import Processor, Transformation
+from webber.utils import doc, clip_string, make_absolute_url
 from webber.context import context, dynamic_context, set_context
 from webber.tui_lib.cmd_binding import CommandBindings
 from webber.tui_lib.nav_history import NavigationHistory
@@ -24,12 +26,35 @@ from webber.tui_lib.search import Searcher
 from webber.jinja2_utils import generated_page, text_from_template
 from webber.profile import profiled
 from webber.ansi import ANSI
+from webber.algorithms.textmanip import map_line_indexes_to_ofs
 
-from webber.algorithms.textmanip import (
-	get_filler,
-	add_highlighting,
-	raw_position_to_line_index
-)
+##############################################################################
+
+class AnsiBufferLexer(Lexer):
+	def lex_document(self, document):
+		def get_line(lineno):
+			return to_formatted_text(ptk_ansi(document.lines[lineno]))
+		return get_line
+
+##############################################################################
+
+class HighlightSearchProcessor(Processor):
+	def __init__(self, get_context):
+		super().__init__()
+		self.get_context = get_context
+
+	def apply_transformation(self, ti):
+		line_offsets, searcher = self.get_context()
+		fragments = ti.fragments
+		# if not fragments or not searcher:
+		# 	return Transformation(fragments)
+		# ofs = line_offsets[ti.lineno]
+		# for begin,end in searcher:
+		# 	if begin < ofs or end >= ofs + len(fragments):
+		# 		continue
+		# 	fragments[begin-ofs:end-ofs] = \
+		# 		[(f"class:search-match", fragments[i][1]) for i in range(begin-ofs, end-ofs)]
+		return Transformation(fragments)
 
 ##############################################################################
 
@@ -45,10 +70,11 @@ def tui_session(navigate, render):
 	styles = vars(tui_session.__context__.config.repl.styles)
 	url = tui_session.__context__.args.url
 	logo = f"webR v.{version}"
-	orig_content = []
+	buffer = Buffer(read_only=True)
+	colored_buffer = Buffer(read_only=True)
+	active_buffer = buffer
+	line_offsets = []
 	links = []
-	vofs = 0
-	total_lines = 0
 	current_mode = "main"
 	error = None
 	searcher = Searcher()
@@ -59,8 +85,8 @@ def tui_session(navigate, render):
 					"appname": appname,
 					"version": version,
 					"url": clip_string(url if url else "", dynamic_width() - 20),
-					"position": vofs,
-					"total_lines": total_lines,
+					"position": active_buffer.cursor_position,
+					"total_lines": len(active_buffer.text),
 					"search_rel_pos": searcher.rel_pos(),
 				}),
 		}),
@@ -69,22 +95,28 @@ def tui_session(navigate, render):
 		}),
 	}
 
+	def on_invalidate(*args, **kwargs):
+		get_app().invalidate()
+		get_app().layout.focus(prompt_area if current_mode == "edit" else content_area)
+
 	def set_current_mode(mode):
 		nonlocal current_mode
 		current_mode = mode
 
 	@profiled
 	def nav_to(next_url):
-		nonlocal orig_content, url, links, error, vofs, searcher, history, total_lines
+		nonlocal url, links, error, searcher, history, line_offsets, buffer, colored_buffer, active_buffer
 		try:
 			set_context(doc_title=None)
 			tmp_links = []
-			orig_content = list(render(navigate(next_url, links=tmp_links)))
-			total_lines = len(''.join(orig_content).splitlines(keepends=True))
+			orig_content = render(navigate(next_url, links=tmp_links))
+			s = ''.join(orig_content)
+			buffer.set_document(Document(text=ANSI.strip(s), cursor_position=0), bypass_readonly=True)
+			colored_buffer.set_document(Document(text=s, cursor_position=0), bypass_readonly=True)
+			line_offsets = map_line_indexes_to_ofs(active_buffer.text)
 			links = tmp_links
 			navhist.add(next_url)
 			url = next_url
-			vofs = 0
 			error = None
 			history.append_string(next_url)
 		except Exception as e:
@@ -105,46 +137,27 @@ def tui_session(navigate, render):
 		n += 1 # minus title-bar height
 		if current_mode == "edit":
 			n += 1 # minus prompt line
-		row = get_app().output.get_size().rows
-		return row - n
+		rows = get_app().output.get_size().rows
+		return rows - n
 
 	def dynamic_width():
 		return get_app().output.get_size().columns - 1
 
-	@profiled
-	def get_visible_content():
-		nonlocal orig_content, searcher
-		get_app().layout.focus(prompt_area if current_mode == "edit" else content_area)
-		visible = add_highlighting(
-				orig_content,
-				list(iter(searcher)),
-				searcher.current()
-				)
-		return ptk_ansi(''.join(visible))
-
-	def scroll_to_search_match():
-		nonlocal vofs, searcher
-		if not searcher:
-			return
-		m = searcher.current()
-		line_index = raw_position_to_line_index(orig_content, m[0])
-		vofs = max(0, line_index)
-
 	def goto_next_search_match():
-		nonlocal searcher, vofs
+		nonlocal searcher
 		if not searcher:
 			beep()
 			return
-		searcher.next()
-		scroll_to_search_match()
+		m = searcher.next()
+		active_buffer.cursor_position = m[0]
 
 	def goto_previous_search_match():
-		nonlocal searcher, vofs
+		nonlocal searcher
 		if not searcher:
 			beep()
 			return
-		searcher.previous()
-		scroll_to_search_match()
+		m = searcher.previous()
+		active_buffer.cursor_position = m[0]
 
 	def is_mode(*modes):
 		@Condition
@@ -212,91 +225,48 @@ def tui_session(navigate, render):
 		set_current_mode("main")
 		prompt_area.buffer.reset()
 
+	@kb.add("left", filter=is_mode("main"))
+	def _(event):
+		beep()
+
+	@kb.add("right", filter=is_mode("main"))
+	def _(event):
+		beep()
+
 	# reset prompt buffer
 	@kb.add("c-c", filter=is_mode("edit"))
 	@doc("Reset prompt buffer")
 	def _(event):
 		prompt_area.buffer.reset()
 
-	# up one line
-	@kb.add("up", filter=is_mode("main"))
-	@doc("Scroll up one line")
-	def _(event):
-		nonlocal vofs
-		if vofs == 0:
-			beep()
-			return
-		if vofs > 0:
-			vofs -= 1
-
 	# up history one line.
 	@kb.add("up", filter=is_mode("edit"))
 	@doc("Scroll history up one item")
 	def _(event):
-		if not prompt_area.buffer.history_backward():
-			beep()
-
-	# down one line
-	@kb.add("down", filter=is_mode("main"))
-	@doc("Scroll down one line")
-	def _(event):
-		nonlocal vofs, total_lines
-		hpage = dynamic_height()
-		if vofs < total_lines - hpage:
-			vofs += 1
-		else:
-			beep()
+		prompt_area.buffer.history_backward()
 
 	# down history one line
 	@kb.add("down", filter=is_mode("edit"))
 	@doc("Scroll history down one item")
 	def _(event):
-		if not prompt_area.buffer.history_forward():
-			beep()
-
-	# page up
-	@kb.add("pageup", filter=is_mode("main"))
-	@kb.add("c-u", filter=is_mode("main"))
-	@doc("Scroll one page up")
-	def _(event):
-		nonlocal vofs
-		if vofs == 0:
-			beep()
-			return
-		hpage = dynamic_height() // 2
-		vofs = max(0, vofs - hpage)
-
-	# page down
-	@kb.add("pagedown", filter=is_mode("main"))
-	@kb.add("c-d", filter=is_mode("main"))
-	@doc("Scroll one page down")
-	def _(event):
-		nonlocal vofs, total_lines
-		hpage = dynamic_height()
-		vofs += hpage // 2
-		if vofs > total_lines - hpage:
-			vofs = total_lines - hpage
-			beep()
+		prompt_area.buffer.history_forward()
 
 	# go to top
 	@kb.add("g", filter=is_mode("main"))
 	@doc("Go to the top of the document")
 	def _(event):
-		nonlocal vofs
-		if vofs == 0:
-			beep()
-			return
-		vofs = 0
+		active_buffer.cursor_position = 0
 
 	# go to bottom
 	@kb.add("G", filter=is_mode("main"))
 	@doc("Go to the bottom of the document")
 	def _(event):
-		nonlocal vofs, total_lines
-		if vofs >= total_lines - 1:
-			beep()
-			return
-		vofs = max(0, total_lines - 1)
+		pos = active_buffer.cursor_position
+		while True:
+			active_buffer.cursor_down()
+			if active_buffer.cursor_position == pos:
+				break
+			pos = active_buffer.cursor_position
 
 	# navigate back in history
 	@kb.add("home", eager=True, filter=is_mode("main"))
@@ -322,10 +292,10 @@ def tui_session(navigate, render):
 	@kb.add("c-r", filter=is_mode("main"))
 	@doc("Reload the current page")
 	def _(event):
-		nonlocal vofs
-		save_vofs = vofs
+		nonlocal buffer
+		save_y = active_buffer.cursor_position
 		handle_submit('reload')
-		vofs = save_vofs
+		active_buffer.cursor_position = save_y
 
 	@kb.add("?", filter=is_mode("main"))
 	@doc("Show help information")
@@ -389,10 +359,10 @@ def tui_session(navigate, render):
 	@commands.add("/", help="Search within the current page")
 	@commands.add("find", help="Search within the current page")
 	def search_command(*args):
-		nonlocal searcher
+		nonlocal searcher, buffer
 		searcher.reset()
 		if args:
-			searcher.search(orig_content, *args)
+			searcher.search(active_buffer.text, *args)
 			goto_next_search_match()
 
 	@commands.add("w", help="Save the current page")
@@ -406,9 +376,8 @@ def tui_session(navigate, render):
 		if len(args) < 1:
 			beep()
 			raise ValueError("No filename provided for save command")
-		content = ANSI.strip(''.join(orig_content))
 		with open(args[0], "w") as f:
-			f.write(content)
+			f.write(ANSI.strip(active_buffer.text))
 
 	def get_title_bar_content():
 		title = tui_session.__get_context__('doc_title')
@@ -422,18 +391,21 @@ def tui_session(navigate, render):
 		return HTML(' \u2502 '.join(msg))
 
 	title_bar = Window(
-			content=FormattedTextControl(get_title_bar_content),
+			content=FormattedTextControl(
+				get_title_bar_content,
+				focusable=False
+			),
 			height=1,
 			width=dynamic_width,
 			style="class:title-bar",
 			)
 
 	content_area = Window(
-			content=FormattedTextControl(
-				get_visible_content,
-				get_cursor_position=lambda: Point(x=0, y=vofs),
-				show_cursor=True,
+			content=BufferControl(
+				buffer=active_buffer,
 				focusable=True,
+				lexer=AnsiBufferLexer(),
+				input_processors=[HighlightSearchProcessor(lambda: (line_offsets, searcher))],
 				),
 			height=dynamic_height,
 			width=dynamic_width,
@@ -455,7 +427,10 @@ def tui_session(navigate, render):
 	prompt_area.control.key_bindings = kb
 
 	status_bar = Window(
-		FormattedTextControl(get_status_bar),
+		FormattedTextControl(
+			get_status_bar,
+			focusable=False
+		),
 		height=1,
 		width=dynamic_width,
 		style="class:status-bar"
@@ -477,6 +452,7 @@ def tui_session(navigate, render):
 			full_screen=True,
 			mouse_support=True,
 			style=Style.from_dict(styles),
+			on_invalidate=on_invalidate,
 	)
 	tui_app.ttimeoutlen=0.05
 	tui_app.timeoutlen=0.05

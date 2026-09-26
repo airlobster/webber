@@ -336,3 +336,46 @@ def raw_position_to_line_index(chunks:Iterable[str], pos:int) -> int:
 				line_index += 1
 			current_pos += 1
 	return -1
+
+
+def map_line_indexes_to_ofs(chunks:Iterable[str]) -> list[int]:
+	offsets = [0]
+	ofs = 0
+	for s in chunks:
+		for c in s:
+			ofs += 1
+			if c == '\n':
+				offsets.append(ofs)
+	return offsets
+
+
+def compress_ansi(chunks:Iterable[str]) -> Iterable[str]:
+	def generate():
+		ansi = []
+		active_ansi = []
+		in_ansi = False
+		active = False
+		for s in chunks:
+			for c in s:
+				if c == '\x1b':
+					in_ansi = True
+					ansi = [c]
+				elif in_ansi:
+					ansi.append(c)
+					if c.isalpha():
+						in_ansi = False
+						sansi = ''.join(ansi)
+						if sansi == ANSI.RESET:
+							if active_ansi or active:
+								yield sansi
+								active_ansi.clear()
+								active = False
+						else:
+							active_ansi.append(sansi)
+				else:
+					if active_ansi:
+						yield ''.join(active_ansi)
+						active_ansi.clear()
+						active = True
+					yield c
+	yield from generate()

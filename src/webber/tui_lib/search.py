@@ -5,14 +5,18 @@ from webber.ansi import ANSI
 def get_searcher(*queries):
 	def qfixup(q):
 		# Escape special regex characters in the query string.
-		return re.sub(r'([.*?+^$[\]\\(){}|-])', r'\\\1', q)
+		q = re.sub(r'([.*?+^$[\]\\(){}|-])', r'\\\1', q)
+		# if query ends with a '!', ensure it is matched as a whole word
+		if q.endswith('!'):
+			q = fr"\b{q[:-1]}\b"
+		return q
 
 	# create the compiled regular expression for the search queries
 	expr = '|'.join([fr"({qfixup(q)})" for q in queries])
 	reQuery = re.compile(expr, re.IGNORECASE | re.MULTILINE | re.DOTALL)
 
 	def searcher(chunks:Iterable[str]) -> Iterable[Tuple[int, int]]:
-		raw = ANSI.strip(''.join(chunks)) # search on the raw content
+		raw = ''.join(chunks) # search on the raw content
 		for m in reQuery.finditer(raw):
 			yield m.span()
 
@@ -31,7 +35,7 @@ class Searcher:
 		return len(self.results)
 
 	def __bool__(self):
-		return bool(self.results)
+		return len(self.results) > 0
 
 	def reset(self):
 		self.results = []

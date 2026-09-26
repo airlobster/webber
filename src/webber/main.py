@@ -21,8 +21,8 @@ from webber.algorithms.textmanip import (
 	split_lines,
 	strip_wrapping_whitespaces,
 	fixup_for_bash,
-	get_filler,
 	expand_tabs,
+	compress_ansi
 )
 from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.profile import get_prof_table, print_prof_table, profiled
@@ -53,24 +53,28 @@ def navigate(url:str, links:List[str]=None) -> Iterable[str]:
 @profiled
 def render_formatted_text(tokens:Iterable, use_colors:bool) -> Iterable[str]:
 	stream = \
-		ansi_filter(
-			fixup_for_bash(
-				reduce_empty_lines(
-					strip_wrapping_whitespaces(
-						split_lines(
-							expand_tabs(
-								tokens,
-								tabsize=4
+		compress_ansi(
+			ansi_filter(
+				fixup_for_bash(
+					reduce_empty_lines(
+						strip_wrapping_whitespaces(
+							split_lines(
+								expand_tabs(
+									tokens,
+									tabsize=4
+								),
+								keepends=True
 							),
-							keepends=True
 						),
+						max_empty=2,
 					),
-					max_empty=2,
 				),
-			),
-			passthrough=use_colors
+				passthrough=use_colors
+			)
 		)
-	yield from stream
+
+	for chunk in ''.join(stream).splitlines(keepends=True):
+		yield chunk
 
 
 @handle_broken_pipe
