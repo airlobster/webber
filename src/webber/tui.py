@@ -59,7 +59,6 @@ def tui_session(navigate, render):
 	uncolored_buffer = Buffer(read_only=True)
 	colored_buffer = Buffer(read_only=True)
 	active_buffer = uncolored_buffer
-	line_offsets = []
 	links = []
 	current_mode = "main"
 	error = None
@@ -97,7 +96,7 @@ def tui_session(navigate, render):
 
 	@profiled
 	def nav_to(next_url):
-		nonlocal url, links, error, searcher, history, line_offsets, uncolored_buffer, colored_buffer, active_buffer
+		nonlocal url, links, error, searcher, history, uncolored_buffer, colored_buffer, active_buffer
 		try:
 			set_context(doc_title=None)
 			tmp_links = []
@@ -105,7 +104,6 @@ def tui_session(navigate, render):
 			s = ''.join(orig_content)
 			uncolored_buffer.set_document(Document(text=ANSI.strip(s), cursor_position=0), bypass_readonly=True)
 			colored_buffer.set_document(Document(text=s, cursor_position=0), bypass_readonly=True)
-			line_offsets = map_line_indexes_to_ofs(active_buffer.text)
 			links = tmp_links
 			navhist.add(next_url)
 			url = next_url
@@ -217,13 +215,13 @@ def tui_session(navigate, render):
 		set_current_mode("main")
 		prompt_area.buffer.reset()
 
-	@kb.add("left", filter=is_mode("main"))
-	def _(event):
-		beep()
+	# @kb.add("left", filter=is_mode("main"))
+	# def _(event):
+	# 	beep()
 
-	@kb.add("right", filter=is_mode("main"))
-	def _(event):
-		beep()
+	# @kb.add("right", filter=is_mode("main"))
+	# def _(event):
+	# 	beep()
 
 	# reset prompt buffer
 	@kb.add("c-c", filter=is_mode("edit"))
@@ -284,7 +282,6 @@ def tui_session(navigate, render):
 	@kb.add("c-r", filter=is_mode("main"))
 	@doc("Reload the current page")
 	def _(event):
-		nonlocal uncolored_buffer
 		save_y = active_buffer.cursor_position
 		handle_submit('reload')
 		active_buffer.cursor_position = save_y
@@ -295,11 +292,13 @@ def tui_session(navigate, render):
 		handle_submit('help')
 
 	@kb.add("n", filter=is_mode("main"))
+	# @kb.add("right", filter=is_mode("main"))
 	@doc("Go to the next search match")
 	def _(event):
 		goto_next_search_match()
 
 	@kb.add("N", filter=is_mode("main"))
+	# @kb.add("left", filter=is_mode("main"))
 	@doc("Go to the previous search match")
 	def _(event):
 		goto_previous_search_match()
@@ -351,7 +350,7 @@ def tui_session(navigate, render):
 	@commands.add("/", help="Search within the current page")
 	@commands.add("find", help="Search within the current page")
 	def search_command(*args):
-		nonlocal searcher, uncolored_buffer
+		nonlocal searcher
 		searcher.reset()
 		if args:
 			searcher.search(active_buffer.text, *args)
@@ -382,6 +381,10 @@ def tui_session(navigate, render):
 		msg = [f for f in modes[current_mode].status_bar().splitlines() if f.strip()]
 		return HTML(' \u2502 '.join(msg))
 
+	def on_cursor_position_changed(*args, **kwargs):
+		print("Cursor position changed", f"args={args}, kwargs={kwargs}")
+		pass
+
 	title_bar = Window(
 			content=FormattedTextControl(
 				get_title_bar_content,
@@ -397,7 +400,7 @@ def tui_session(navigate, render):
 				buffer=active_buffer,
 				focusable=True,
 				lexer=AnsiBufferLexer(get_colored_line),
-				input_processors=[],
+				input_processors=[]
 				),
 			height=dynamic_height,
 			width=dynamic_width,
