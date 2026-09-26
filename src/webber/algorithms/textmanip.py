@@ -353,6 +353,7 @@ def compress_ansi(chunks:Iterable[str]) -> Iterable[str]:
 	def generate():
 		ansi = []
 		active_ansi = []
+		prev_active_ansi = []
 		in_ansi = False
 		active = False
 		for s in chunks:
@@ -368,13 +369,16 @@ def compress_ansi(chunks:Iterable[str]) -> Iterable[str]:
 						if sansi == ANSI.RESET:
 							if active_ansi or active:
 								yield sansi
+								prev_active_ansi.clear()
 								active_ansi.clear()
 								active = False
 						else:
 							active_ansi.append(sansi)
 				else:
 					if active_ansi:
-						yield ''.join(active_ansi)
+						if active_ansi != prev_active_ansi:
+							yield ''.join(active_ansi)
+							prev_active_ansi = active_ansi.copy()
 						active_ansi.clear()
 						active = True
 					yield c
