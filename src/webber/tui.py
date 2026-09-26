@@ -15,7 +15,6 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.lexers import Lexer
-from prompt_toolkit.layout.processors import Processor, Transformation
 from webber.utils import doc, clip_string, make_absolute_url
 from webber.context import context, dynamic_context, set_context
 from webber.tui_lib.cmd_binding import CommandBindings
@@ -26,7 +25,6 @@ from webber.tui_lib.search import Searcher
 from webber.jinja2_utils import generated_page, text_from_template
 from webber.profile import profiled
 from webber.ansi import ANSI
-from webber.algorithms.textmanip import map_line_indexes_to_ofs
 
 ##############################################################################
 
@@ -215,14 +213,6 @@ def tui_session(navigate, render):
 		set_current_mode("main")
 		prompt_area.buffer.reset()
 
-	# @kb.add("left", filter=is_mode("main"))
-	# def _(event):
-	# 	beep()
-
-	# @kb.add("right", filter=is_mode("main"))
-	# def _(event):
-	# 	beep()
-
 	# reset prompt buffer
 	@kb.add("c-c", filter=is_mode("edit"))
 	@doc("Reset prompt buffer")
@@ -380,10 +370,6 @@ def tui_session(navigate, render):
 			return HTML(text_from_template('error', {'msg': error}))
 		msg = [f for f in modes[current_mode].status_bar().splitlines() if f.strip()]
 		return HTML(' \u2502 '.join(msg))
-
-	def on_cursor_position_changed(*args, **kwargs):
-		print("Cursor position changed", f"args={args}, kwargs={kwargs}")
-		pass
 
 	title_bar = Window(
 			content=FormattedTextControl(
