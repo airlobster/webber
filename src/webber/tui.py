@@ -31,8 +31,14 @@ from webber.algorithms.textmanip import map_line_indexes_to_ofs
 ##############################################################################
 
 class AnsiBufferLexer(Lexer):
+	def __init__(self, get_colored_line=None):
+		super().__init__()
+		self.get_colored_line = get_colored_line
+
 	def lex_document(self, document):
 		def get_line(lineno):
+			if self.get_colored_line:
+				return to_formatted_text(ptk_ansi(self.get_colored_line(lineno)))
 			return to_formatted_text(ptk_ansi(document.lines[lineno]))
 		return get_line
 
@@ -78,6 +84,12 @@ def tui_session(navigate, render):
 	current_mode = "main"
 	error = None
 	searcher = Searcher()
+
+	def get_colored_line(lineno:int) -> str:
+		lines = colored_buffer.document.lines
+		if 0 <= lineno < len(lines):
+			return lines[lineno]
+		return ""
 
 	modes = {
 		"main": SimpleNamespace({
@@ -404,7 +416,7 @@ def tui_session(navigate, render):
 			content=BufferControl(
 				buffer=active_buffer,
 				focusable=True,
-				lexer=AnsiBufferLexer(),
+				lexer=AnsiBufferLexer(get_colored_line),
 				input_processors=[HighlightSearchProcessor(lambda: (line_offsets, searcher))],
 				),
 			height=dynamic_height,

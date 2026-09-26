@@ -3,16 +3,19 @@ import re
 
 def get_searcher(*queries):
 	def qfixup(q):
-		# Escape special regex characters in the query string.
+		# Escape regex special characters to keep search literal.
 		q = re.sub(r'([.*?+^$[\]\\(){}|-])', r'\\\1', q)
-		# if query ends with a '!', ensure it is matched as a whole word
+		# if query ends with '!', ensure whole-word matching.
 		if q.endswith('!'):
 			q = fr"\b{q[:-1]}\b"
 		return q
 
 	# create the compiled regular expression for the search queries
 	expr = '|'.join([fr"({qfixup(q)})" for q in queries])
-	reQuery = re.compile(expr, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+	try:
+		reQuery = re.compile(expr, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+	except re.error as e:
+		raise ValueError(f"Invalid regex: {e}") from e
 
 	def searcher(chunks:Iterable[str]) -> Iterable[Tuple[int, int]]:
 		raw = ''.join(chunks) # search on the raw content
