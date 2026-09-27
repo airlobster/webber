@@ -231,6 +231,16 @@ def tui_session(navigate, render):
 	def _(event):
 		prompt_area.buffer.history_forward()
 
+	@kb.add("c-u", filter=is_mode("main"))
+	@doc("Scroll up one page")
+	def _(event):
+		active_buffer.cursor_up(dynamic_height() // 2)
+
+	@kb.add("c-d", filter=is_mode("main"))
+	@doc("Scroll down one page")
+	def _(event):
+		active_buffer.cursor_down(dynamic_height() // 2)
+
 	# go to top
 	@kb.add("g", filter=is_mode("main"))
 	@doc("Go to the top of the document")

@@ -376,6 +376,8 @@ def compress_ansi(chunks:Iterable[str]) -> Iterable[str]:
 						else:
 							# accumulate ansi sequences until there's a content that actually need it
 							active_ansi.append(sansi)
+				elif c.isspace():
+					yield c
 				else:
 					if active_ansi:
 						# flush accumulated ANSI sequences if they differ from the previous ones
