@@ -9,6 +9,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl
+from prompt_toolkit.selection import SelectionType
 from prompt_toolkit.widgets import TextArea
 from prompt_toolkit.formatted_text import ANSI as ptk_ansi, HTML, to_formatted_text
 from prompt_toolkit.styles import Style
@@ -131,13 +132,18 @@ def tui_session(navigate, render):
 	def dynamic_width():
 		return get_app().output.get_size().columns - 1
 
+	def select_text(start:int, end:int):
+		active_buffer.cursor_position = end
+		active_buffer.start_selection(selection_type=SelectionType.CHARACTERS)
+		active_buffer.cursor_position = start
+
 	def goto_next_search_match():
 		nonlocal searcher
 		if not searcher:
 			beep()
 			return
 		m = searcher.next()
-		active_buffer.cursor_position = m[0]
+		select_text(*m)
 
 	def goto_previous_search_match():
 		nonlocal searcher
@@ -145,7 +151,7 @@ def tui_session(navigate, render):
 			beep()
 			return
 		m = searcher.previous()
-		active_buffer.cursor_position = m[0]
+		select_text(*m)
 
 	def is_mode(*modes):
 		@Condition
@@ -212,6 +218,7 @@ def tui_session(navigate, render):
 		error = None
 		set_current_mode("main")
 		prompt_area.buffer.reset()
+		active_buffer.selection_state = None
 
 	# reset prompt buffer
 	@kb.add("c-c", filter=is_mode("edit"))
@@ -231,26 +238,56 @@ def tui_session(navigate, render):
 	def _(event):
 		prompt_area.buffer.history_forward()
 
+	@kb.add("up", filter=is_mode("main"))
+	@doc("Move cursor up")
+	def _(event):
+		active_buffer.selection_state = None
+		active_buffer.cursor_up()
+
+	@kb.add("down", filter=is_mode("main"))
+	@doc("Move cursor down")
+	def _(event):
+		active_buffer.selection_state = None
+		active_buffer.cursor_down()
+
+	@kb.add("left", filter=is_mode("main"))
+	@doc("Move cursor left")
+	def _(event):
+		active_buffer.selection_state = None
+		active_buffer.cursor_left()
+
+	@kb.add("right", filter=is_mode("main"))
+	@doc("Move cursor right")
+	def _(event):
+		active_buffer.selection_state = None
+		active_buffer.cursor_right()
+
+	@kb.add("pageup", filter=is_mode("main"))
 	@kb.add("c-u", filter=is_mode("main"))
 	@doc("Scroll up one page")
 	def _(event):
+		active_buffer.selection_state = None
 		active_buffer.cursor_up(dynamic_height() // 2)
 
+	@kb.add("pagedown", filter=is_mode("main"))
 	@kb.add("c-d", filter=is_mode("main"))
 	@doc("Scroll down one page")
 	def _(event):
+		active_buffer.selection_state = None
 		active_buffer.cursor_down(dynamic_height() // 2)
 
 	# go to top
 	@kb.add("g", filter=is_mode("main"))
 	@doc("Go to the top of the document")
 	def _(event):
+		active_buffer.selection_state = None
 		active_buffer.cursor_position = 0
 
 	# go to bottom
 	@kb.add("G", filter=is_mode("main"))
 	@doc("Go to the bottom of the document")
 	def _(event):
+		active_buffer.selection_state = None
 		pos = active_buffer.cursor_position
 		while True:
 			active_buffer.cursor_down()
