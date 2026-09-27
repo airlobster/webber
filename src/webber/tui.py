@@ -6,7 +6,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
 from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import Layout
+from prompt_toolkit.layout import Layout, ScrollbarMargin
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl
 from prompt_toolkit.selection import SelectionType
@@ -288,12 +288,7 @@ def tui_session(navigate, render):
 	@doc("Go to the bottom of the document")
 	def _(event):
 		active_buffer.selection_state = None
-		pos = active_buffer.cursor_position
-		while True:
-			active_buffer.cursor_down()
-			if active_buffer.cursor_position == pos:
-				break
-			pos = active_buffer.cursor_position
+		active_buffer.cursor_position = len(active_buffer.text)
 
 	# navigate back in history
 	@kb.add("home", eager=True, filter=is_mode("main"))
@@ -384,7 +379,6 @@ def tui_session(navigate, render):
 		with generated_page("about") as u:
 			nav_to(u)
 
-	@commands.add("/", help="Search within the current page")
 	@commands.add("find", help="Search within the current page")
 	def search_command(*args):
 		nonlocal searcher
@@ -438,6 +432,7 @@ def tui_session(navigate, render):
 			height=dynamic_height,
 			width=dynamic_width,
 			wrap_lines=True,
+			# right_margins=[ScrollbarMargin(display_arrows=True)],
 			)
 
 	prompt_area = TextArea(
