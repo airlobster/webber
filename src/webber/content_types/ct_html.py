@@ -227,9 +227,7 @@ class IgnoreWhitespaces(TagBaseBehavior):
 
 	def on_event(self, e):
 		# if e.type == LexerEventType.DATA:
-		# 	e.data = e.data.strip()
-		# 	if not e.data:
-		# 		return
+		# 	e.data = e.data.replace('\n', ' ').strip()
 		super().on_event(e)
 
 ##############################################################################
@@ -258,7 +256,7 @@ class BlockItemBehavior(IgnoreWhitespaces):
 		super().__init__(parent, ev, context)
 
 	def render(self):
-		yield '\n'
+		# yield '\n'
 		yield from super().render()
 
 ##############################################################################
@@ -331,8 +329,7 @@ class OrderedListBehavior(ListItemBehavior):
 		self.counter = 0
 
 	def render_bullet(self):
-		self.counter += 1
-		yield f'{self.counter}.'
+		yield f'{++self.counter}.'
 
 ##############################################################################
 
