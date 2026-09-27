@@ -110,7 +110,7 @@ def load_config(appname:str) -> ConfigSection:
 	# If the config file does not exist or cannot be read, create it with the default namespace.
 	try:
 		with open(pathname, "w") as f:
-			json.dump(namespace, f, indent=4)
+			json.dump(namespace, f, indent="\t")
 	except Exception as e:
 		log.warning(f"Failed to write config file: {e}")
 	return dict_to_namespace(namespace)

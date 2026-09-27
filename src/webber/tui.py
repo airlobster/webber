@@ -6,7 +6,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
 from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import Layout, ScrollbarMargin
+from prompt_toolkit.layout import Layout, NumberedMargin, ScrollbarMargin
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl
 from prompt_toolkit.selection import SelectionType
@@ -52,6 +52,8 @@ def tui_session(navigate, render):
 	history = WebberTuiHistory()
 	appname = tui_session.__context__.appname
 	version = tui_session.__context__.version
+	args = tui_session.__context__.args
+	line_numbers = args.line_numbers
 	styles = vars(tui_session.__context__.config.repl.styles)
 	url = tui_session.__context__.args.url
 	logo = f"webR v.{version}"
@@ -69,8 +71,10 @@ def tui_session(navigate, render):
 					"appname": appname,
 					"version": version,
 					"url": clip_string(url if url else "", dynamic_width() - 20),
+					"row": active_buffer.document.cursor_position_row,
+					"col": active_buffer.document.cursor_position_col,
 					"position": active_buffer.cursor_position,
-					"total_lines": len(active_buffer.text),
+					"length": len(active_buffer.text),
 					"search_rel_pos": searcher.rel_pos(),
 				}),
 		}),
@@ -432,6 +436,7 @@ def tui_session(navigate, render):
 			height=dynamic_height,
 			width=dynamic_width,
 			wrap_lines=True,
+			left_margins=[NumberedMargin()] if line_numbers else [],
 			# right_margins=[ScrollbarMargin(display_arrows=True)],
 			)
 

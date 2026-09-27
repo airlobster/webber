@@ -296,8 +296,8 @@ class ListItemBehavior(IgnoreWhitespaces):
 			yield f'\n{indent*(self._nest+1)}{''.join(self.render_bullet())} '
 			if bullet_color:
 				yield ANSI.RESET
-			yield ''.join(child.render()).lstrip()
-		yield '\n'
+			yield ''.join(child.render()).strip()
+		# yield '\n'
 
 	@abstractmethod
 	def render_bullet(self):

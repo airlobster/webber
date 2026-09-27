@@ -108,6 +108,7 @@ def parseCommandLine():
 	parser.add_argument("-C", "--colors", choices=["auto", "always", "never"], default="auto", help="Color output mode")
 	parser.add_argument("-r", "--reset", action="store_true", default=False, help="Reset the application's history and configuration")
 	parser.add_argument("-l", "--log", choices=log.levels, help="Set the logging level", default="INFO")
+	parser.add_argument("-N", "--line_numbers", action="store_true", default=False, help="Enable line numbers")
 	parser.add_argument("url", help="URL")
 	if debug_features:
 		parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode")
