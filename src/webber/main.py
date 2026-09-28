@@ -124,7 +124,7 @@ def main():
 	try:
 		args, unparse = parseCommandLine()
 		log.set_level(args.log)
-		if args.debug:
+		if getattr(args, "debug", False):
 			# override log level to DEBUG if debug mode is enabled
 			log.set_level("TRACE")
 		log.trace('CLI args:', args)
@@ -168,12 +168,13 @@ def main():
 			return
 		events_loop()
 	except Exception as e:
-		if args and args.debug:
-			raise e
-		print(f"{log.COLOR_CAT.ERROR}{e}{ANSI.RESET}", file=sys.stderr)
-		return 1
+		raise
+		# if args and getattr(args, "debug", False):
+		# 	raise e
+		# print(f"{log.COLOR_CAT.ERROR}{e}{ANSI.RESET}", file=sys.stderr)
+		# return 1
 	finally:
-		if args and args.profile:
+		if args and getattr(args, "profile", False):
 			print_prof_table(get_prof_table())
 	return 0
 
