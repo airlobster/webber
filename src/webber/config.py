@@ -91,7 +91,7 @@ def load_config(appname:str) -> ConfigSection:
 				"status-bar": "reverse",
 				"search-match": "reverse",
 				"error": "bg:#7f0000",
-				"logo": "fg:#81587F bg:#ffffff"
+				"logo": "fg:#00A1E6 bg:#ffffff"
 			}
 		}
 	}
