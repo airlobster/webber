@@ -37,12 +37,11 @@ class CommandBindings:
 
 	# Parse a command string and return a callable that executes the command
 	def parse_command(self, command:str) -> Callable[..., None]:
-		elements = shlex.split(command.strip())
-		if not elements:
+		if not command.strip():
 			return None
-		cmd, *args = elements
-		if cmd not in self.commands:
-			# treat it as a URL or link
-			args = [cmd, *args]
-			cmd = 'navigate'
-		return lambda: self.commands[cmd](*args)
+		elements = shlex.split(command.strip())
+		# is first element a valid command?
+		if elements[0] in self.commands.keys():
+			return lambda: self.commands[elements[0]](*elements[1:])
+		# fallback to the default 'g' command if no valid command is found
+		return lambda: self.commands["g"](*elements)

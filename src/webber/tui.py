@@ -8,14 +8,13 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, NumberedMargin
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
-from prompt_toolkit.layout.controls import FormattedTextControl, BufferControl
+from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.selection import SelectionType
 from prompt_toolkit.widgets import TextArea
-from prompt_toolkit.formatted_text import ANSI as ptk_ansi, HTML, to_formatted_text
+from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.lexers import Lexer
 from webber.utils import doc, clip_string, make_absolute_url
 from webber.context import context, dynamic_context, set_context
 from webber.tui_lib.cmd_binding import CommandBindings
@@ -23,23 +22,11 @@ from webber.tui_lib.nav_history import NavigationHistory
 from webber.tui_lib.dyn_completer import DynamicCompleter
 from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.tui_lib.search import Searcher
+from webber.tui_lib.no_cursor_bufctrl import NoCursorBufferControl
+from webber.tui_lib.ansi_lexer import AnsiBufferLexer
 from webber.jinja2_utils import generated_page, text_from_template
 from webber.profile import profiled
 from webber.ansi import ANSI
-
-##############################################################################
-
-class AnsiBufferLexer(Lexer):
-	def __init__(self, get_colored_line=None):
-		super().__init__()
-		self.get_colored_line = get_colored_line
-
-	def lex_document(self, document):
-		def get_line(lineno):
-			if self.get_colored_line:
-				return to_formatted_text(ptk_ansi(self.get_colored_line(lineno)))
-			return to_formatted_text(ptk_ansi(document.lines[lineno]))
-		return get_line
 
 ##############################################################################
 
@@ -71,10 +58,8 @@ def tui_session(navigate, render):
 					"appname": appname,
 					"version": version,
 					"url": clip_string(url if url else "", dynamic_width() - 20),
-					"row": active_buffer.document.cursor_position_row,
-					"col": active_buffer.document.cursor_position_col,
-					"position": active_buffer.cursor_position,
-					"length": len(active_buffer.text),
+					"position": get_visible_lines_range(),
+					"total_lines": active_buffer.document.line_count,
 					"search_rel_pos": searcher.rel_pos(),
 				}),
 		}),
@@ -96,6 +81,21 @@ def tui_session(navigate, render):
 	def set_current_mode(mode):
 		nonlocal current_mode
 		current_mode = mode
+
+	def get_visible_lines_range() -> tuple[int, int]:
+		start = content_area.render_info.first_visible_line()
+		current = active_buffer.document.cursor_position_row
+		end = content_area.render_info.last_visible_line()
+		return start, current, end
+
+	def vscroll(count):
+		t,c,b = get_visible_lines_range()
+		if count < 0:
+			n = max(c - t + abs(count), 1)
+			active_buffer.cursor_up(count=n)
+		elif count > 0:
+			n = max(b - c + abs(count), 1)
+			active_buffer.cursor_down(count=n)
 
 	@profiled
 	def nav_to(next_url):
@@ -246,39 +246,37 @@ def tui_session(navigate, render):
 	@doc("Move cursor up")
 	def _(event):
 		active_buffer.selection_state = None
-		active_buffer.cursor_up()
+		vscroll(-1)
 
 	@kb.add("down", filter=is_mode("main"))
 	@doc("Move cursor down")
 	def _(event):
 		active_buffer.selection_state = None
-		active_buffer.cursor_down()
-
-	@kb.add("left", filter=is_mode("main"))
-	@doc("Move cursor left")
-	def _(event):
-		active_buffer.selection_state = None
-		active_buffer.cursor_left()
-
-	@kb.add("right", filter=is_mode("main"))
-	@doc("Move cursor right")
-	def _(event):
-		active_buffer.selection_state = None
-		active_buffer.cursor_right()
+		vscroll(1)
 
 	@kb.add("pageup", filter=is_mode("main"))
 	@kb.add("c-u", filter=is_mode("main"))
 	@doc("Scroll up one page")
 	def _(event):
 		active_buffer.selection_state = None
-		active_buffer.cursor_up(dynamic_height() // 2)
+		vscroll(- dynamic_height() // 2)
 
 	@kb.add("pagedown", filter=is_mode("main"))
 	@kb.add("c-d", filter=is_mode("main"))
 	@doc("Scroll down one page")
 	def _(event):
 		active_buffer.selection_state = None
-		active_buffer.cursor_down(dynamic_height() // 2)
+		vscroll(dynamic_height() // 2)
+
+	@kb.add("left", filter=is_mode("main"))
+	@doc("Move cursor left")
+	def _(event):
+		active_buffer.selection_state = None
+
+	@kb.add("right", filter=is_mode("main"))
+	@doc("Move cursor right")
+	def _(event):
+		active_buffer.selection_state = None
 
 	# go to top
 	@kb.add("g", filter=is_mode("main"))
@@ -319,13 +317,13 @@ def tui_session(navigate, render):
 	@doc("Reload the current page")
 	def _(event):
 		save_y = active_buffer.cursor_position
-		handle_submit('reload')
+		handle_submit('r')
 		active_buffer.cursor_position = save_y
 
 	@kb.add("?", filter=is_mode("main"))
 	@doc("Show help information")
 	def _(event):
-		handle_submit('help')
+		handle_submit('h')
 
 	@kb.add("n", filter=is_mode("main"))
 	# @kb.add("right", filter=is_mode("main"))
@@ -339,13 +337,11 @@ def tui_session(navigate, render):
 	def _(event):
 		goto_previous_search_match()
 
-	@commands.add("quit", help="Exit the application")
 	@commands.add("q", help="Exit the application")
 	def quit_command(*args):
 		tui_app.exit()
 
-	@commands.add("nav", help="Navigate to a URL or link", add_to_history=False)
-	@commands.add("navigate", help="Navigate to a URL or link", add_to_history=False)
+	@commands.add("g", help="Navigate to a URL or link", add_to_history=False)
 	def navigate_command(*args):
 		if not args:
 			beep()
@@ -361,11 +357,11 @@ def tui_session(navigate, render):
 			next_url = make_absolute_url(url, links[index])
 		nav_to(next_url)
 
-	@commands.add("source", help="Show current page's source", add_to_history=False)
+	@commands.add("c", help="Show current page's source", add_to_history=False)
 	def source_command(*args):
 		nav_to(f"view-source://{quote(url)}")
 
-	@commands.add("reload", help="Reload the current page")
+	@commands.add("r", help="Reload the current page")
 	def reload_command(*args):
 		nonlocal url
 		if not url:
@@ -373,17 +369,16 @@ def tui_session(navigate, render):
 			return
 		nav_to(url)
 
-	@commands.add("?", help="Show this help message")
-	@commands.add("help", help="Show this help message")
+	@commands.add("h", help="Show this help message")
 	def help_command(*args):
 		help()
 
-	@commands.add("about", help="Show information about the application")
+	@commands.add("a", help="Show information about the application")
 	def about_command(*args):
 		with generated_page("about") as u:
 			nav_to(u)
 
-	@commands.add("find", help="Search within the current page")
+	@commands.add("/", help="Search within the current page")
 	def search_command(*args):
 		nonlocal searcher
 		searcher.reset()
@@ -392,7 +387,6 @@ def tui_session(navigate, render):
 			goto_next_search_match()
 
 	@commands.add("w", help="Save the current page")
-	@commands.add("save", help="Save the current page")
 	def save_command(*args):
 		nonlocal url
 		if not url:
@@ -427,7 +421,7 @@ def tui_session(navigate, render):
 			)
 
 	content_area = Window(
-			content=BufferControl(
+			content=NoCursorBufferControl(
 				buffer=active_buffer,
 				focusable=True,
 				lexer=AnsiBufferLexer(get_colored_line),

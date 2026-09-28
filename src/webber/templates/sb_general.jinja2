@@ -1,5 +1,5 @@
 <b>url:</b> <i>{{url}}</i>
-<b>Ln</b> <i>{{row+1}}</i>, <b>Col</b> <i>{{col+1}}</i> <i>({{ (position * 100 / length) | round(1) }}%)</i>
+<b>Pos</b> <i>{{position[0] + 1}}&#8230;{{position[2] + 1}} ({{(position[1] * 100 / total_lines) | round(0, 'ceil') }}%)</i>
 {% if search_rel_pos[1] %}
 <b>search:</b> <i>{{search_rel_pos[0] + 1}}/{{search_rel_pos[1]}}</i>
 {% endif %}
