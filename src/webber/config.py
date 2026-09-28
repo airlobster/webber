@@ -57,6 +57,13 @@ def load_config(appname:str) -> ConfigSection:
 				"CLOSE_ARRAY": ANSI.FG_RGB(216, 222, 233),
 				"OPEN_OBJECT": ANSI.FG_RGB(216, 222, 233),
 				"CLOSE_OBJECT": ANSI.FG_RGB(216, 222, 233),
+			},
+			"repl": {
+				"title-bar": "reverse",
+				"status-bar": "reverse",
+				"search-match": "reverse",
+				"error": "bg:#7f0000",
+				"logo": "fg:#00A1E6 bg:#ffffff"
 			}
 		},
 		"html": {
@@ -86,13 +93,6 @@ def load_config(appname:str) -> ConfigSection:
 		},
 		"repl": {
 			"beep": True,
-			"styles": {
-				"title-bar": "reverse",
-				"status-bar": "reverse",
-				"search-match": "reverse",
-				"error": "bg:#7f0000",
-				"logo": "fg:#00A1E6 bg:#ffffff"
-			}
 		}
 	}
 	def dict_to_namespace(d):
