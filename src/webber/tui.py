@@ -9,7 +9,6 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import Layout, NumberedMargin
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
-from prompt_toolkit.selection import SelectionType
 from prompt_toolkit.widgets import TextArea
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.styles import Style
@@ -21,6 +20,7 @@ from webber.tui_lib.cmd_binding import CommandBindings
 from webber.tui_lib.nav_history import NavigationHistory
 from webber.tui_lib.dyn_completer import DynamicCompleter
 from webber.tui_lib.prompt_history import WebberTuiHistory
+from webber.tui_lib.utils import get_visible_lines_range, vscroll, select_text
 from webber.tui_lib.search import Searcher
 from webber.tui_lib.no_cursor_bufctrl import NoCursorBufferControl
 from webber.tui_lib.ansi_lexer import AnsiBufferLexer
@@ -58,7 +58,7 @@ def tui_session(navigate, render):
 					"appname": appname,
 					"version": version,
 					"url": clip_string(url if url else "", dynamic_width() - 20),
-					"position": get_visible_lines_range(),
+					"position": get_visible_lines_range(content_area),
 					"total_lines": active_buffer.document.line_count,
 					"search_rel_pos": searcher.rel_pos(),
 				}),
@@ -81,21 +81,6 @@ def tui_session(navigate, render):
 	def set_current_mode(mode):
 		nonlocal current_mode
 		current_mode = mode
-
-	def get_visible_lines_range() -> tuple[int, int]:
-		start = content_area.render_info.first_visible_line()
-		current = active_buffer.document.cursor_position_row
-		end = content_area.render_info.last_visible_line()
-		return start, current, end
-
-	def vscroll(count):
-		t,c,b = get_visible_lines_range()
-		if count < 0:
-			n = max(c - t + abs(count), 1)
-			active_buffer.cursor_up(count=n)
-		elif count > 0:
-			n = max(b - c + abs(count), 1)
-			active_buffer.cursor_down(count=n)
 
 	@profiled
 	def nav_to(next_url):
@@ -136,18 +121,13 @@ def tui_session(navigate, render):
 	def dynamic_width():
 		return get_app().output.get_size().columns - 1
 
-	def select_text(start:int, end:int):
-		active_buffer.cursor_position = end
-		active_buffer.start_selection(selection_type=SelectionType.CHARACTERS)
-		active_buffer.cursor_position = start
-
 	def goto_next_search_match():
 		nonlocal searcher
 		if not searcher:
 			beep()
 			return
 		m = searcher.next()
-		select_text(*m)
+		select_text(active_buffer, *m)
 
 	def goto_previous_search_match():
 		nonlocal searcher
@@ -155,7 +135,7 @@ def tui_session(navigate, render):
 			beep()
 			return
 		m = searcher.previous()
-		select_text(*m)
+		select_text(active_buffer, *m)
 
 	def is_mode(*modes):
 		@Condition
@@ -246,27 +226,27 @@ def tui_session(navigate, render):
 	@doc("Move cursor up")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(-1)
+		vscroll(content_area, -1)
 
 	@kb.add("down", filter=is_mode("main"))
 	@doc("Move cursor down")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(1)
+		vscroll(content_area, 1)
 
 	@kb.add("pageup", filter=is_mode("main"))
 	@kb.add("c-u", filter=is_mode("main"))
 	@doc("Scroll up one page")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(- dynamic_height() // 2)
+		vscroll(content_area, - dynamic_height() // 2)
 
 	@kb.add("pagedown", filter=is_mode("main"))
 	@kb.add("c-d", filter=is_mode("main"))
 	@doc("Scroll down one page")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(dynamic_height() // 2)
+		vscroll(content_area, dynamic_height() // 2)
 
 	@kb.add("left", filter=is_mode("main"))
 	@doc("Move cursor left")
@@ -378,7 +358,7 @@ def tui_session(navigate, render):
 		with generated_page("about") as u:
 			nav_to(u)
 
-	@commands.add("/", help="Search within the current page")
+	@commands.add("s", help="Search within the current page")
 	def search_command(*args):
 		nonlocal searcher
 		searcher.reset()
