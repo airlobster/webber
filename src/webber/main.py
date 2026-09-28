@@ -75,6 +75,7 @@ def render_formatted_text(tokens:Iterable, use_colors:bool) -> Iterable[str]:
 
 	for chunk in ''.join(stream).splitlines(keepends=True):
 		yield chunk
+	yield "\n"
 
 
 @handle_broken_pipe
@@ -168,11 +169,10 @@ def main():
 			return
 		events_loop()
 	except Exception as e:
-		raise
-		# if args and getattr(args, "debug", False):
-		# 	raise e
-		# print(f"{log.COLOR_CAT.ERROR}{e}{ANSI.RESET}", file=sys.stderr)
-		# return 1
+		if args and getattr(args, "debug", False):
+			raise e
+		print(f"{log.COLOR_CAT.ERROR}{e}{ANSI.RESET}", file=sys.stderr)
+		return 1
 	finally:
 		if args and getattr(args, "profile", False):
 			print_prof_table(get_prof_table())

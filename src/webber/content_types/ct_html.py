@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from types import SimpleNamespace
-from typing import Iterable, Tuple, List
+from typing import Iterable, Tuple, List, Dict
 import re
 from fnmatch import fnmatch
 from webber.algorithms.stack import Stack
@@ -109,7 +109,6 @@ def register_for_reset(f):
 	return f
 
 
-@context
 class TagBaseBehavior:
 	block_items = {'p', 'pre', 'li', 'div'}
 	tagid_counter = 0
@@ -125,7 +124,7 @@ class TagBaseBehavior:
 		self.tag = ev.tag if ev else None
 		self.attrs = dict(ev.attrs) if ev and ev.attrs else {}
 		self.context = context
-		self.color = getattr(TagBaseBehavior.__context__.config.palette.html, self.tag, '') if self.tag else None
+		self.color = self.context.palette.get(self.tag, '') if self.tag else None
 		self.tagid = TagBaseBehavior.tagid_counter
 		TagBaseBehavior.tagid_counter += 1
 
@@ -284,8 +283,8 @@ class ListItemBehavior(IgnoreWhitespaces):
 	def render(self):
 		if not self.has_valid_content():
 			return
-		bullet_color = getattr(TagBaseBehavior.__context__.config.palette.html, 'li_bullet', '')
-		indent = getattr(TagBaseBehavior.__context__.config.palette.html, 'indent', '  ')
+		bullet_color = self.context.palette.get('li_bullet', '')
+		indent = self.context.palette.get('indent', '  ')
 		for child in self.children:
 			if child.tag != 'li':
 				continue
@@ -372,7 +371,7 @@ class LinkTagBehavior(IgnoreWhitespaces):
 			LinkTagBehavior.link_id_counter += 1
 			linkid = LinkTagBehavior.link_id_counter
 			self.context.links.append(href)
-			color = getattr(TagBaseBehavior.__context__.config.palette.html, 'link_index', '')
+			color = self.context.palette.get('link_index', '')
 			yield color
 			yield f"{color}{{{linkid}}}"
 			yield ANSI.RESET
@@ -396,7 +395,7 @@ class PreformattedTagBehavior(TagBaseBehavior):
 
 	# (we override the render method just so we can add indentation)
 	def render(self):
-		indent = getattr(TagBaseBehavior.__context__.config.palette.html, 'indent', ' '*3)
+		indent = self.context.palette.get('indent', ' '*3)
 		yield '\n\n'
 		lines = ''.join(super().render()).split('\n')
 		for line in lines:
@@ -476,7 +475,7 @@ class TableTagBehavior(TagBaseBehavior):
 			if e.tag == 'th' or e.tag == 'td':
 				self.table[-1][-1] = ' '.join(self.table[-1][-1])
 				# add styling
-				color = getattr(TableTagBehavior.__context__.config.palette.html, e.tag, '')
+				color = self.context.palette.get(e.tag, '')
 				if color:
 					c = self.table[-1][-1]
 					c = f"{color}{c}{ANSI.RESET}"
@@ -498,27 +497,30 @@ class TableTagBehavior(TagBaseBehavior):
 ##############################################################################
 
 @profiled
-@context
-def html_render(tokens: Iterable[Tuple], links:List[str]=None) -> Iterable[str]:
-	try:
-		# reset globals
-		for f in __resets:
-			f()
-		context = SimpleNamespace(active_tags=Stack(), links=links)
-		# create root element
-		root = DocumentRoot(context=context)
-		# build DOM tree
-		context.active_tags.push(root)
-		for token in tokens:
-			t = context.active_tags.peek()
-			if t is None:
-				continue
-			t.on_event(token)
-		# render DOM tree
-		yield from root.render()
-		yield '\n'
-	finally:
-		yield ANSI.RESET
+def html_render(tokens: Iterable[Tuple], links:List[str]=None, palette:Dict={}) -> Iterable[str]:
+	# reset globals
+	for f in __resets:
+		f()
+	context = SimpleNamespace(active_tags=Stack(), links=links, palette=palette)
+	# create root element
+	root = DocumentRoot(context=context)
+	# build DOM tree
+	context.active_tags.push(root)
+	for token in tokens:
+		t = context.active_tags.peek()
+		if t is None:
+			continue
+		t.on_event(token)
+	# render DOM tree
+	yield from root.render()
 
 ##############################################################################
 ##############################################################################
+
+@context
+def html_render_wrapper(tokens: Iterable[Tuple], links:List[str]=None) -> Iterable[str]:
+	return html_render(
+		tokens,
+		links=links,
+		palette=vars(html_render_wrapper.__context__.config.palette.html)
+		)

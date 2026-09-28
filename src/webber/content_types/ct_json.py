@@ -1,6 +1,7 @@
 from typing import Dict, Iterable, Any
 from collections import namedtuple
 import re
+from webber.ansi import ANSI
 
 JsonToken = namedtuple("JsonToken", ["type", "value", "pos"], defaults=[None, None])
 
@@ -233,7 +234,7 @@ def json_render(tokens:Iterable[JsonToken], indent:str|int=4, palette:Dict[str, 
 			yield " "
 		# reset color if palette is used
 		if color:
-			yield "\x1b[0m"
+			yield ANSI.RESET
 
 ##############################################################################
 ##############################################################################

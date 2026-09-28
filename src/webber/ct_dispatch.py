@@ -3,7 +3,7 @@ from typing import Tuple
 from urllib.parse import urlparse, unquote
 from pathlib import Path
 from fnmatch import fnmatchcase
-from webber.content_types.ct_html import html_lexer, html_render
+from webber.content_types.ct_html import html_lexer, html_render_wrapper
 from webber.content_types.ct_raw import raw_tokenizer, raw_renderer
 from webber.content_types.ct_json import json_lexer_wrapper, json_renderer_wrapper
 from webber.utils import find
@@ -20,7 +20,7 @@ content_type_handlers = [
 		content_type_patterns = [ "*/html" ],
 		url_extractor = lambda url: url,
 		tokenizer = html_lexer,
-		renderer = html_render
+		renderer = html_render_wrapper
 	),
 	# JSON
 	ContentTypeHandlers(
