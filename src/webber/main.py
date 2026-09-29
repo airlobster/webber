@@ -1,6 +1,7 @@
 import sys
 sys.path.append("src")
 from typing import Iterable, List
+from contextlib import contextmanager
 from pathlib import Path
 import argparse
 from urllib.parse import urlsplit
@@ -33,21 +34,30 @@ from webber.themes import load_theme
 
 
 @profiled
+@contextmanager
 def download_content(url:str):
-	surl = urlsplit(url)
-	if not surl.scheme:
-		url = "https://" + url
-	http_conf = vars(get_context().config.http)
-	return requests.get(url, headers=dict(http_conf), impersonate="chrome")
+	r = None
+	try:
+		surl = urlsplit(url)
+		if not surl.scheme:
+			url = "https://" + url
+		http_conf = vars(get_context().config.http)
+		r = requests.get(url, headers=dict(http_conf), impersonate="chrome")
+		yield r
+	finally:
+		if r is not None:
+			r.close()
+
 
 @profiled
 def navigate(url:str, links:List[str]=None) -> Iterable[str]:
-	r = download_content(extract_url(url))
-	content_type = r.headers.get('Content-Type', '').split(';')[0]
-	encoding = r.encoding if r.encoding else 'utf-8'
-	tokenizer, renderer = get_content_handler(url, content_type)
-	tokens = intercept(tokenizer(r.content.decode(encoding)), log.debug)
-	return renderer(tokens, links)
+	with download_content(extract_url(url)) as r:
+		content_type = r.headers.get('Content-Type', '').split(';')[0]
+		encoding = r.encoding if r.encoding else 'utf-8'
+		tokenizer, renderer = get_content_handler(url, content_type)
+		tokens = intercept(tokenizer(r.content.decode(encoding)), log.debug)
+		return renderer(tokens, links)
+
 
 @profiled
 def render_formatted_text(tokens:Iterable, use_colors:bool) -> Iterable[str]:
