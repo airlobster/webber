@@ -109,7 +109,7 @@ def parseCommandLine():
 	debug_features = Path.joinpath(Path(sys.argv[0]).parent, "__debug__.py").exists()
 	parser = UnparsableArgumentParser(description=f"{toml.project.name} - command-line web reader", exit_on_error=False)
 	parser.add_argument("-v", "--version", action="version", version=f"{toml.project.name} {toml.project.version}")
-	parser.add_argument("-b", "--batch", action="store_true", default=False, help="Enable batch mode")
+	parser.add_argument("-b", "--batch", action="store_true", default=False, help="Run in plain text mode")
 	parser.add_argument("-C", "--colors", choices=["auto", "always", "never"], default="auto", help="Color output mode")
 	parser.add_argument("-l", "--log", choices=log.levels, help="Set the logging level", default="INFO")
 	parser.add_argument("-N", "--line_numbers", action="store_true", default=False, help="Enable line numbers")
