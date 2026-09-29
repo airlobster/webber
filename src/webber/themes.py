@@ -61,7 +61,7 @@ default_palette = {
 		"status-bar": "reverse",
 		"search-match": "reverse",
 		"error": "bg:#7f0000",
-		"logo": "fg:#00A1E6 bg:#ffffff"
+		"logo": "fg:#E24D00 bg:#ffffff"
 	}
 }
 
