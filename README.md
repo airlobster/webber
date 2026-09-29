@@ -40,8 +40,8 @@ In order to open the help page, either press `?` in view mode, or `h` in the pro
 Links in an HTML page are prefixed with a dimmed `{nnn}`. Whenever you want to browse to a specific link, enter command-mode (`:`), and enter the link's ID prefixed with a `#` character (`#nnnn`).
 
 ### Text Search
-To search for text in the content-area, enter command-mode (`:`), and enter `find <text1> <text2>...`. in order to search for text that includes spaces, enclose the searched text with double-quote (`"`) characters.
-Once the `find` command is submitted, results can be iterated using the `n` and `N` keys for forward and backword iteration respectively. To cancel the search, use the `Escape` key.
+To search for text in the content-area, enter command-mode (`:`), and enter `s <text1> <text2>...`. in order to search for text that includes spaces, enclose the searched text with double-quote (`"`) characters.
+Once the `s` command is submitted, results can be iterated using the `n` and `N` keys for forward and backword iteration respectively. To cancel the search, use the `Escape` key.
 
 ### Saving the Current Page to a File
 Enter the command-mode using the `:` key, and use the `w <filename>` command.
