@@ -397,7 +397,7 @@ def tui_session(navigate, render):
 				focusable=False
 			),
 			height=1,
-			width=lambda: Dimension(max=dynamic_width()),
+			width=dynamic_width,
 			style="class:title-bar",
 			)
 
@@ -409,7 +409,7 @@ def tui_session(navigate, render):
 				input_processors=[]
 				),
 			height=dynamic_height,
-			width=lambda: Dimension(max=dynamic_width()),
+			width=dynamic_width,
 			wrap_lines=True,
 			style="class:content-area",
 			left_margins=[NumberedMargin()] if line_numbers else [],
@@ -418,7 +418,7 @@ def tui_session(navigate, render):
 
 	prompt_area = TextArea(
 		height=1,
-		width=lambda: Dimension(max=dynamic_width()),
+		width=dynamic_width,
 		prompt=HTML(f'<b>:</b>'),
 		multiline=False,
 		accept_handler=handle_submit,
@@ -436,7 +436,7 @@ def tui_session(navigate, render):
 			focusable=False
 		),
 		height=1,
-		width=lambda: Dimension(max=dynamic_width()),
+		width=dynamic_width,
 		style="class:status-bar"
 		)
 
