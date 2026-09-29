@@ -86,9 +86,21 @@ def validate_theme(j: dict) -> dict:
 		"properties": {
 			"html": {"type": "object"},
 			"json": {"type": "object"},
-			"repl": {"type": "object"},
+			"repl": {
+				"type": "object",
+				"properties": {
+					"title-bar": {"type": "string"},
+					"status-bar": {"type": "string"},
+					"search-match": {"type": "string"},
+					"content-area": {"type": "string"},
+					"error": {"type": "string"},
+					"logo": {"type": "string"},
+				},
+				"additionalProperties": False
+			},
 		},
-		"required": ["html", "json", "repl"]
+		"required": ["html", "json", "repl"],
+		"additionalProperties": True
 	}
 	return validate_dict(j, schema)
 
