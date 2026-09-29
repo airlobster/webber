@@ -15,6 +15,7 @@ from webber.utils import (
 	handle_broken_pipe,
 	restart,
 	load_toml,
+	get_terminal_size
 )
 from webber.unparsable_argparse import UnparsableArgumentParser
 from webber.ansi import ANSI
@@ -26,7 +27,8 @@ from webber.algorithms.textmanip import (
 	strip_wrapping_whitespaces,
 	fixup_for_bash,
 	expand_tabs,
-	compress_ansi
+	compress_ansi,
+	get_filler
 )
 from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.profile import get_prof_table, print_prof_table, profiled
@@ -89,12 +91,13 @@ def render_formatted_text(tokens:Iterable, use_colors:bool) -> Iterable[str]:
 
 @handle_broken_pipe
 def events_loop():
-	args = get_context().args
-	use_colors = args.colors == "always" or (args.colors == "auto" and sys.stdout.isatty())
-	tui_session(
-		navigate=navigate,
-		render=lambda tokens: render_formatted_text(tokens, use_colors)
-	)
+	def render(tokens:Iterable):
+		args = get_context().args
+		use_colors = args.colors == "always" or (args.colors == "auto" and sys.stdout.isatty())
+		w,_ = get_terminal_size()
+		filler = get_filler(width=w-1, wrap_thresh=8)
+		return filler(render_formatted_text(tokens, use_colors))
+	tui_session(navigate=navigate, render=render)
 
 
 @handle_broken_pipe

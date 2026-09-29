@@ -410,7 +410,7 @@ def tui_session(navigate, render):
 				),
 			height=dynamic_height,
 			width=dynamic_width,
-			wrap_lines=True,
+			wrap_lines=False, # i'll do it myself, thank you very much!
 			style="class:content-area",
 			left_margins=[NumberedMargin()] if line_numbers else [],
 			# right_margins=[ScrollbarMargin(display_arrows=True)],

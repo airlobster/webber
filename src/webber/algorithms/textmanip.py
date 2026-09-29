@@ -60,6 +60,7 @@ def get_filler(*, width: int, wrap_thresh:int=15, tab_width:int=4, add_hyphen:bo
 
 	return ansi_aware_fill
 
+
 # Reduce consecutive empty lines to a maximum of `max_empty`
 def reduce_empty_lines(it:Iterable[str], max_empty:int=2, passthrough:bool=False) -> Iterable[str]:
 	def generate():
