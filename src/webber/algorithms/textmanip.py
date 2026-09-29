@@ -261,60 +261,6 @@ def expand_tabs(it:Iterable[str], tabsize: int=4) -> Iterable[str]:
 	yield from generate()
 
 
-@profiled
-def add_highlighting(
-		chunks:Iterable[str],
-		matches:List[Tuple[int, int]],
-		current_match:Tuple[int, int]|None
-		):
-	palette = get_context().palette
-	attr_highlight = getattr(palette, 'highlight', ANSI.FG_HEX('#ffffff')+ANSI.BG_HEX('#555555'))
-	attr_curr_highlight = getattr(palette, 'curr_highlight', ANSI.FG_HEX('#000000')+ANSI.BG_HEX('#ffffff'))
-	pos = 0
-	in_ansi = False
-	curr_ansi = []
-	ansi = []
-	match_index = 0
-	matches_iter = iter(matches)
-	m = next(matches_iter, None)
-	for s in chunks:
-		for c in s:
-			if c == '\x1b':
-				ansi = [c]
-				yield c
-				in_ansi = True
-				continue
-			if in_ansi:
-				ansi.append(c)
-				yield c
-				if c.isalpha():
-					sansi = ''.join(ansi)
-					if sansi == ANSI.RESET:
-						curr_ansi.clear()
-					curr_ansi.append(sansi)
-					in_ansi = False
-				continue
-			if m and pos == m[0]:
-					# begin match
-					yield attr_curr_highlight if current_match and pos == current_match[0] \
-						else attr_highlight
-					yield c
-					pos += 1
-					continue
-			if m and pos == m[1]:
-					# end match
-					yield ANSI.RESET
-					yield from curr_ansi
-					yield c
-					pos += 1
-					# next match to wait for
-					match_index += 1
-					m = next(matches_iter, None)
-					continue
-			yield c
-			pos += 1
-
-
 def raw_position_to_line_index(chunks:Iterable[str], pos:int) -> int:
 	line_index = 0
 	current_pos = 0

@@ -520,5 +520,5 @@ def html_render_wrapper(tokens: Iterable[Tuple], links:List[str]=None) -> Iterab
 	return html_render(
 		tokens,
 		links=links,
-		palette=vars(get_context().config.palette.html)
+		palette=vars(get_context().palette.html)
 		)

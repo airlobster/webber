@@ -26,7 +26,7 @@ from webber.algorithms.textmanip import (
 )
 from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.profile import get_prof_table, print_prof_table, profiled
-from webber.themes import installed_themes, load_theme
+from webber.themes import load_theme
 
 appname = "webber"
 version = "0.2.0"
@@ -141,7 +141,8 @@ def main():
 			version=version,
 			author="Adi Degani",
 			email="adid172@gmail.com",
-			config=main.__config__
+			config=main.__config__,
+			palette=load_theme(main.__config__.theme)
 		)
 
 		# load last build timestamp

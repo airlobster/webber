@@ -1,10 +1,12 @@
 import os
 import sys
+from types import SimpleNamespace
 from typing import Any, Callable, Iterable
 from pathlib import Path
 import shutil
 from functools import wraps
 from contextlib import contextmanager
+import jsonschema as jso
 from webber.context import get_context
 
 # iterator interceptor
@@ -117,3 +119,14 @@ def find(iterable:Iterable[Any], predicate:Callable[[Any], bool]) -> Any|None:
 		if callable(predicate) and predicate(item):
 			return item
 	return None
+
+
+def dict_to_namespace(o):
+	if isinstance(o, dict):
+		return SimpleNamespace(**{k: dict_to_namespace(v) for k, v in o.items()})
+	return o
+
+
+def validate_dict(d: dict, schema: dict) -> dict:
+	jso.validate(instance=d, schema=schema)
+	return d

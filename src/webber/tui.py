@@ -39,7 +39,7 @@ def tui_session(navigate, render):
 	version = get_context().version
 	args = get_context().args
 	line_numbers = args.line_numbers
-	styles = vars(get_context().config.palette.repl)
+	styles = vars(get_context().palette.repl)
 	url = get_context().args.url
 	logo = f"webR v.{version}"
 	uncolored_buffer = Buffer(read_only=True)

@@ -247,5 +247,5 @@ def json_lexer_wrapper(content:str):
 	return json_lexer()(lines)
 
 def json_renderer_wrapper(tokens:Iterable[JsonToken]):
-	palette = getattr(get_context().palette, "json", SimpleNamespace())
-	return json_render(json_parse(tokens), palette=vars(palette))
+	palette = vars(get_context().palette.json)
+	return json_render(json_parse(tokens), palette=palette)
