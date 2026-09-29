@@ -138,9 +138,9 @@ def validate_dict(d: dict, schema: dict) -> dict:
 def load_toml():
 	import tomllib
 	try:
-		root_dir = Path.joinpath(Path(__file__).parent.parent.parent)
-		for filename in glob(str(root_dir / "*.toml")):
-			with open(filename, "rb") as f:
+		root_dir = Path(__file__).resolve().parent.parent.parent
+		for tomlname in glob(str(root_dir / "*.toml")):
+			with open(tomlname, "rb") as f:
 				return dict_to_namespace(tomllib.load(f))
 			break
 	except FileNotFoundError:
