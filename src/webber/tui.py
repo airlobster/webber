@@ -6,7 +6,7 @@ from prompt_toolkit import Application
 from prompt_toolkit.application import get_app
 from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import Layout, NumberedMargin
+from prompt_toolkit.layout import Dimension, Layout, NumberedMargin
 from prompt_toolkit.layout.containers import HSplit, Window, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.widgets import TextArea
@@ -397,7 +397,7 @@ def tui_session(navigate, render):
 				focusable=False
 			),
 			height=1,
-			width=dynamic_width,
+			width=lambda: Dimension(max=dynamic_width()),
 			style="class:title-bar",
 			)
 
@@ -409,7 +409,7 @@ def tui_session(navigate, render):
 				input_processors=[]
 				),
 			height=dynamic_height,
-			width=dynamic_width,
+			width=lambda: Dimension(max=dynamic_width()),
 			wrap_lines=True,
 			style="class:content-area",
 			left_margins=[NumberedMargin()] if line_numbers else [],
@@ -418,7 +418,7 @@ def tui_session(navigate, render):
 
 	prompt_area = TextArea(
 		height=1,
-		width=dynamic_width,
+		width=lambda: Dimension(max=dynamic_width()),
 		prompt=HTML(f'<b>:</b>'),
 		multiline=False,
 		accept_handler=handle_submit,
@@ -436,7 +436,7 @@ def tui_session(navigate, render):
 			focusable=False
 		),
 		height=1,
-		width=dynamic_width,
+		width=lambda: Dimension(max=dynamic_width()),
 		style="class:status-bar"
 		)
 
