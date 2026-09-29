@@ -60,6 +60,7 @@ default_palette = {
 		"title-bar": "reverse",
 		"status-bar": "reverse",
 		"search-match": "reverse",
+		"content-area": "bg:#000044",
 		"error": "bg:#7f0000",
 		"logo": "fg:#E24D00 bg:#ffffff"
 	}

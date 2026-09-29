@@ -18,10 +18,11 @@ def get_visible_lines_range(area:Window) -> tuple[int, int, int]:
 
 # Scroll the content of a prompt_toolkit Window by a specified number of lines.
 # Positive values scroll down, negative values scroll up.
-def vscroll(area:Window, count:int) -> None:
+def vscroll(area:Window, count:int) -> bool:
 	if not count:
-		return
+		return False
 	buffer = area.content.buffer
+	current = buffer.document.cursor_position_row
 	t,c,b = get_visible_lines_range(area)
 	if count < 0:
 		n = max(c - t + abs(count), 1)
@@ -29,3 +30,4 @@ def vscroll(area:Window, count:int) -> None:
 	elif count > 0:
 		n = max(b - c + abs(count), 1)
 		buffer.cursor_down(count=n)
+	return buffer.document.cursor_position_row != current

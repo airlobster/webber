@@ -39,7 +39,6 @@ def tui_session(navigate, render):
 	version = get_context().version
 	args = get_context().args
 	line_numbers = args.line_numbers
-	styles = vars(get_context().palette.repl)
 	url = get_context().args.url
 	logo = f"webR v.{version}"
 	uncolored_buffer = Buffer(read_only=True)
@@ -103,7 +102,7 @@ def tui_session(navigate, render):
 			get_app().invalidate()
 
 	def beep():
-		beep_enabled = tui_session.__context__.config.repl.beep
+		beep_enabled = get_context().config.repl.beep
 		if beep_enabled:
 			get_app().output.bell()
 
@@ -224,27 +223,31 @@ def tui_session(navigate, render):
 	@doc("Move cursor up")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(content_area, -1)
+		if not vscroll(content_area, -1):
+			beep()
 
 	@kb.add("down", filter=is_mode("main"))
 	@doc("Move cursor down")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(content_area, 1)
+		if not vscroll(content_area, 1):
+			beep()
 
 	@kb.add("pageup", filter=is_mode("main"))
 	@kb.add("c-u", filter=is_mode("main"))
 	@doc("Scroll up one page")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(content_area, - dynamic_height() // 2)
+		if not vscroll(content_area, - dynamic_height() // 2):
+			beep()
 
 	@kb.add("pagedown", filter=is_mode("main"))
 	@kb.add("c-d", filter=is_mode("main"))
 	@doc("Scroll down one page")
 	def _(event):
 		active_buffer.selection_state = None
-		vscroll(content_area, dynamic_height() // 2)
+		if not vscroll(content_area, dynamic_height() // 2):
+			beep()
 
 	@kb.add("left", filter=is_mode("main"))
 	@doc("Move cursor left")
@@ -408,6 +411,7 @@ def tui_session(navigate, render):
 			height=dynamic_height,
 			width=dynamic_width,
 			wrap_lines=True,
+			style="class:content-area",
 			left_margins=[NumberedMargin()] if line_numbers else [],
 			# right_margins=[ScrollbarMargin(display_arrows=True)],
 			)
@@ -451,7 +455,7 @@ def tui_session(navigate, render):
 			layout=Layout(root_container, focused_element=content_area),
 			full_screen=True,
 			mouse_support=True,
-			style=Style.from_dict(styles),
+			style=Style.from_dict(vars(get_context().palette.repl)),
 			on_invalidate=on_invalidate,
 	)
 	tui_app.ttimeoutlen=0.05
