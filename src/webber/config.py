@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 from webber.ansi import ANSI
 from webber import log
+from webber.themes import load_theme
 
 class ConfigSection(SimpleNamespace):
 	def __init__(self, **kwargs):
@@ -20,6 +21,7 @@ def load_config(appname:str) -> ConfigSection:
 		'#BC7FB7'
 	]
 	namespace = {
+		"theme": None,
 		"palette" : {
 			"html": {
 				"title": f"{ANSI.BOLD}{ANSI.UNDERLINE}{ANSI.FG_HEX(color_scheme[5])}",
@@ -104,6 +106,8 @@ def load_config(appname:str) -> ConfigSection:
 		with open(pathname, "r") as f:
 			d = namespace | json.load(f)
 			ns = dict_to_namespace(d)
+			if getattr(ns, "theme", None):
+				ns.config.palette = load_theme(getattr(ns, "theme"))
 			return ns
 	except Exception as e:
 		pass

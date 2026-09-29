@@ -15,7 +15,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.buffer import Buffer
 from webber.utils import doc, clip_string, make_absolute_url
-from webber.context import context, dynamic_context, set_context
+from webber.context import set_context, get_context
 from webber.tui_lib.cmd_binding import CommandBindings
 from webber.tui_lib.nav_history import NavigationHistory
 from webber.tui_lib.dyn_completer import DynamicCompleter
@@ -30,19 +30,17 @@ from webber.ansi import ANSI
 
 ##############################################################################
 
-@context
-@dynamic_context
 def tui_session(navigate, render):
 	kb = KeyBindings()
 	commands = CommandBindings()
 	navhist = NavigationHistory()
 	history = WebberTuiHistory()
-	appname = tui_session.__context__.appname
-	version = tui_session.__context__.version
-	args = tui_session.__context__.args
+	appname = get_context().appname
+	version = get_context().version
+	args = get_context().args
 	line_numbers = args.line_numbers
-	styles = vars(tui_session.__context__.config.palette.repl)
-	url = tui_session.__context__.args.url
+	styles = vars(get_context().config.palette.repl)
+	url = get_context().args.url
 	logo = f"webR v.{version}"
 	uncolored_buffer = Buffer(read_only=True)
 	colored_buffer = Buffer(read_only=True)
@@ -380,7 +378,7 @@ def tui_session(navigate, render):
 			f.write(ANSI.strip(active_buffer.text))
 
 	def get_title_bar_content():
-		title = tui_session.__get_context__('doc_title')
+		title = get_context('doc_title')
 		t = html.escape(title) if title else "-No Title-"
 		return HTML(f"<logo> {logo} </logo> <i>{t}</i>")
 

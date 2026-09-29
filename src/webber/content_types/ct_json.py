@@ -240,13 +240,12 @@ def json_render(tokens:Iterable[JsonToken], indent:str|int=4, palette:Dict[str, 
 ##############################################################################
 
 from types import SimpleNamespace
-from webber.context import context
+from webber.context import get_context
 
 def json_lexer_wrapper(content:str):
 	lines = content.splitlines(keepends=True)
 	return json_lexer()(lines)
 
-@context
 def json_renderer_wrapper(tokens:Iterable[JsonToken]):
-	palette = getattr(json_renderer_wrapper.__context__.config.palette, "json", SimpleNamespace())
+	palette = getattr(get_context().palette, "json", SimpleNamespace())
 	return json_render(json_parse(tokens), palette=vars(palette))

@@ -1,6 +1,6 @@
 from typing import Iterable, Callable, List, Tuple
 from webber.ansi import ANSI
-from webber.context import context
+from webber.context import get_context
 from webber.profile import profiled
 
 # Create a filler function that is aware of ANSI escape sequences and handles text wrapping correctly.
@@ -149,7 +149,6 @@ def split_lines(it:Iterable[str], keepends:bool=False) -> Iterable[str]:
 	yield from generate()
 
 
-@context
 def render_table(table: list[list[str]]) -> Iterable[str]:
 	from tabulate import tabulate
 	from webber.utils import get_terminal_size
@@ -162,7 +161,7 @@ def render_table(table: list[list[str]]) -> Iterable[str]:
 	maxcolwidth = max((w - 3) // ncols, 4)
 	try:
 		yield tabulate(table,
-				tablefmt=render_table.__context__.config.tables.style,
+				tablefmt=get_context().config.tables.style,
 				maxcolwidths=[maxcolwidth] * ncols,
 				disable_numparse=True
 			)
@@ -263,13 +262,12 @@ def expand_tabs(it:Iterable[str], tabsize: int=4) -> Iterable[str]:
 
 
 @profiled
-@context
 def add_highlighting(
 		chunks:Iterable[str],
 		matches:List[Tuple[int, int]],
 		current_match:Tuple[int, int]|None
 		):
-	palette = add_highlighting.__context__.config.palette
+	palette = get_context().palette
 	attr_highlight = getattr(palette, 'highlight', ANSI.FG_HEX('#ffffff')+ANSI.BG_HEX('#555555'))
 	attr_curr_highlight = getattr(palette, 'curr_highlight', ANSI.FG_HEX('#000000')+ANSI.BG_HEX('#ffffff'))
 	pos = 0

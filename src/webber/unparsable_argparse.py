@@ -6,9 +6,6 @@ import shlex
 
 # Custom ArgumentParser that can unparse a SimpleNamespace back into command-line arguments
 class UnparsableArgumentParser(argparse.ArgumentParser):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-
 	def unparse(self, parsed:argparse.Namespace, exclude:Tuple[str]=[]) -> tuple[str, ...]:
 		def flatten(a):
 			if isinstance(a, list):
@@ -58,7 +55,7 @@ class UnparsableArgumentParser(argparse.ArgumentParser):
 			shlex.quote(sys.argv[0]),
 			*flatten(with_values),
 			*without_values,
-			*positionals.values()
+			*[p for p in positionals.values() if p is not None]
 			])
 
 		return args_out

@@ -5,7 +5,7 @@ from pathlib import Path
 import shutil
 from functools import wraps
 from contextlib import contextmanager
-from webber.context import context
+from webber.context import get_context
 
 # iterator interceptor
 def intercept(it:Iterable[Any], visit:Callable[[Any], None]|None=None):
@@ -87,9 +87,8 @@ def clip_string(s:str, max_length:int):
 	return s
 
 
-@context
 def make_config_filename(extension:str):
-	appname = make_config_filename.__context__.appname
+	appname = get_context().appname
 	return str(Path(f"~/.{appname}{extension}").expanduser().resolve())
 
 

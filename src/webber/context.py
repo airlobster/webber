@@ -7,16 +7,7 @@ def set_context(**kwargs):
 	for key, value in kwargs.items():
 		setattr(__context, key, value)
 
-def get_context(key, default=None):
+def get_context(key=None, default=None):
+	if key is None:
+		return __context
 	return getattr(__context, key, default)
-
-# decorator to attach the global context to a function or class
-def context(f):
-	global __context
-	f.__context__ = __context
-	return f
-
-def dynamic_context(f):
-	global __context
-	f.__get_context__ = lambda key, default=None: getattr(__context, key, default)
-	return f

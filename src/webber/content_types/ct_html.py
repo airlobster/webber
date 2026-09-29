@@ -7,7 +7,7 @@ from webber.algorithms.stack import Stack
 from webber.algorithms.queue import Queue
 from webber.algorithms.breadcrumbs import Breadcrumbs
 from webber.algorithms.textmanip import render_table
-from webber.context import context, set_context
+from webber.context import set_context, get_context
 from webber.ansi import ANSI
 from webber.profile import profiled
 from webber import log
@@ -18,14 +18,13 @@ class LexerEventType:
 	END = 'END'
 	DATA = 'DATA'
 
-@context
 def html_lexer(text:str) -> Iterable[str]:
 	from html.parser import HTMLParser
 
 	class MyHtmlParser(HTMLParser):
 		def __init__(self, *args, **kwargs):
 			super().__init__(*args, **kwargs)
-			html_config = getattr(html_lexer.__context__.config, 'html', SimpleNamespace())
+			html_config = getattr(get_context().config, 'html', SimpleNamespace())
 			self.blacklist = set(getattr(html_config, 'blacklist', []))
 			self.whitelist = set(getattr(html_config, 'whitelist', ["html.head.title"]))
 			self.q = Queue()
@@ -517,10 +516,9 @@ def html_render(tokens: Iterable[Tuple], links:List[str]=None, palette:Dict={}) 
 ##############################################################################
 ##############################################################################
 
-@context
 def html_render_wrapper(tokens: Iterable[Tuple], links:List[str]=None) -> Iterable[str]:
 	return html_render(
 		tokens,
 		links=links,
-		palette=vars(html_render_wrapper.__context__.config.palette.html)
+		palette=vars(get_context().config.palette.html)
 		)
