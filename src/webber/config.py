@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from pathlib import Path
 import json
+from typing import Any
 from webber.utils import dict_to_namespace, validate_dict
 from webber import log
 
@@ -90,3 +91,30 @@ def reinit_config(appname:str) -> None:
 		_config = load_config(appname)
 	except Exception as e:
 		log.warning(f"Failed to delete config file: {e}")
+
+
+def get_config_param(name: str, default=None) -> Any:
+	global _config
+	o = _config
+	for part in name.split('.'):
+		if o is None or not hasattr(o, part):
+			raise ValueError(f"Configuration parameter '{name}' not found")
+		o = getattr(o, part)
+	return str(o)
+
+
+def set_config_param(name:str, value:Any) -> None:
+	def parse_value(value:str) -> Any:
+		try:
+			return json.loads(value)
+		except:
+			pass
+		return value
+	global _config
+	o = _config
+	parts = name.split('.')
+	for part in parts[:-1]:
+		if o is None or not hasattr(o, part):
+			raise ValueError(f"Configuration parameter '{name}' not found")
+		o = getattr(o, part)
+	setattr(o, parts[-1], parse_value(value))

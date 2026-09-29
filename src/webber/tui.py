@@ -27,6 +27,7 @@ from webber.tui_lib.ansi_lexer import AnsiBufferLexer
 from webber.jinja2_utils import generated_page, text_from_template
 from webber.profile import profiled
 from webber.ansi import ANSI
+from webber.config import set_config_param
 
 ##############################################################################
 
@@ -376,6 +377,21 @@ def tui_session(navigate, render):
 			raise ValueError("No filename provided for save command")
 		with open(args[0], "w") as f:
 			f.write(ANSI.strip(active_buffer.text))
+
+	# @commands.add("get", help="Get a configuration value")
+	# def get_config(*args):
+	# 	if len(args) < 1:
+	# 		beep()
+	# 		raise ValueError("No argument name provided for get command")
+	# 	raise RuntimeError("Not implemented")
+
+	@commands.add("set", help="Set a configuration value")
+	def set_config(*args):
+		if len(args) < 2:
+			beep()
+			raise ValueError("No argument name or value provided for set command")
+		set_config_param(args[0], args[1])
+		handle_submit('r') # reload
 
 	def get_title_bar_content():
 		title = get_context('doc_title')
