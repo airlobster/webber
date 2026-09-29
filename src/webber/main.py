@@ -3,6 +3,8 @@ sys.path.append("src")
 from typing import Iterable, List
 from pathlib import Path
 import argparse
+from urllib.parse import urlsplit
+from curl_cffi import requests
 import webber.log as log
 from webber.config import configurable, reinit_config
 from webber.context import set_context, get_context
@@ -32,8 +34,6 @@ from webber.themes import load_theme
 
 @profiled
 def download_content(url:str):
-	from urllib.parse import urlsplit
-	from curl_cffi import requests
 	surl = urlsplit(url)
 	if not surl.scheme:
 		url = "https://" + url
