@@ -11,6 +11,7 @@ from webber.utils import (
 	intercept,
 	handle_broken_pipe,
 	restart,
+	load_toml,
 )
 from webber.unparsable_argparse import UnparsableArgumentParser
 from webber.ansi import ANSI
@@ -28,8 +29,6 @@ from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.profile import get_prof_table, print_prof_table, profiled
 from webber.themes import load_theme
 
-appname = "webber"
-version = "0.2.0"
 
 @profiled
 def download_content(url:str):
@@ -100,15 +99,16 @@ def batch_mode():
 
 
 def parseCommandLine():
+	toml = load_toml()
 	class action_reset(argparse.Action):
 		def __call__(self, parser, namespace, values, option_string=None):
 			WebberTuiHistory.delete_file()
-			reinit_config(appname)
+			reinit_config(toml.project.name)
 			restart(parser.unparse(namespace, exclude=["reset"]))
 			sys.exit(0)
 	debug_features = Path.joinpath(Path(sys.argv[0]).parent, "__debug__.py").exists()
-	parser = UnparsableArgumentParser(description=f"{appname} - command-line web reader", exit_on_error=False)
-	parser.add_argument("-v", "--version", action="version", version=f"{appname} {version}")
+	parser = UnparsableArgumentParser(description=f"{toml.project.name} - command-line web reader", exit_on_error=False)
+	parser.add_argument("-v", "--version", action="version", version=f"{toml.project.name} {toml.project.version}")
 	parser.add_argument("-b", "--batch", action="store_true", default=False, help="Enable batch mode")
 	parser.add_argument("-C", "--colors", choices=["auto", "always", "never"], default="auto", help="Color output mode")
 	parser.add_argument("-l", "--log", choices=log.levels, help="Set the logging level", default="INFO")
@@ -123,7 +123,14 @@ def parseCommandLine():
 
 @configurable
 def main():
-	set_context(appname=appname)
+	toml = load_toml()
+
+	set_context(
+		appname=toml.project.name,
+		version=toml.project.version,
+		author=toml.project.authors[0].name,
+		email=toml.project.authors[0].email,
+	)
 
 	args = None
 	log.set_level("INFO")
@@ -136,11 +143,7 @@ def main():
 			log.set_level("TRACE")
 		log.trace('CLI args:', args)
 
-		# build application context
 		set_context(
-			version=version,
-			author="Adi Degani",
-			email="adid172@gmail.com",
 			config=main.__config__,
 			palette=load_theme(main.__config__.theme)
 		)

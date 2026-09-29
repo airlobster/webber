@@ -3,6 +3,7 @@ import sys
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable
 from pathlib import Path
+from glob import glob
 import shutil
 from functools import wraps
 from contextlib import contextmanager
@@ -122,6 +123,8 @@ def find(iterable:Iterable[Any], predicate:Callable[[Any], bool]) -> Any|None:
 
 
 def dict_to_namespace(o):
+	if isinstance(o, list):
+		return [dict_to_namespace(item) for item in o]
 	if isinstance(o, dict):
 		return SimpleNamespace(**{k: dict_to_namespace(v) for k, v in o.items()})
 	return o
@@ -130,3 +133,15 @@ def dict_to_namespace(o):
 def validate_dict(d: dict, schema: dict) -> dict:
 	jso.validate(instance=d, schema=schema)
 	return d
+
+
+def load_toml():
+	import tomllib
+	try:
+		root_dir = Path.joinpath(Path(__file__).parent.parent.parent)
+		for filename in glob(str(root_dir / "*.toml")):
+			with open(filename, "rb") as f:
+				return dict_to_namespace(tomllib.load(f))
+			break
+	except FileNotFoundError:
+		return SimpleNamespace()
