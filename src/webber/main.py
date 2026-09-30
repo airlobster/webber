@@ -153,7 +153,7 @@ def main():
 		if getattr(args, "debug", False):
 			# override log level to DEBUG if debug mode is enabled
 			set_global_level("DEBUG")
-		log.debug('CLI args:', args)
+		log.debug(f'CLI args: {args}')
 
 		set_context(
 			config=get_config_param(),
