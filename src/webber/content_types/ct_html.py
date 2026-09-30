@@ -91,12 +91,9 @@ def html_lexer(text:str) -> Iterable[str]:
 		def is_white(self, tag:str) -> bool:
 			return any(fnmatch(tag.lower(), t.lower()) for t in self.whitelist)
 
-	try:
-		parser = MyHtmlParser()
-		parser.feed(text)
-		yield from parser.get_tokens()
-	except Exception as e:
-		log.error(f"Error while parsing HTML: {e}")
+	parser = MyHtmlParser()
+	parser.feed(text)
+	yield from parser.get_tokens()
 
 ##############################################################################
 ##############################################################################

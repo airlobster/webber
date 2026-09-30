@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 import argparse
 from urllib.parse import urlsplit
-from curl_cffi import requests
+import requests
 import webber.log as log
 from webber.config import configurable, reinit_config
 from webber.context import set_context, get_context

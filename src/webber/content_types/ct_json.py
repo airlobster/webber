@@ -239,7 +239,6 @@ def json_render(tokens:Iterable[JsonToken], indent:str|int=4, palette:Dict[str, 
 ##############################################################################
 ##############################################################################
 
-from types import SimpleNamespace
 from webber.context import get_context
 
 def json_lexer_wrapper(content:str):
