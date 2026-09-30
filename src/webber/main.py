@@ -7,7 +7,7 @@ import argparse
 from urllib.parse import urlsplit
 from curl_cffi import requests
 import webber.log as log
-from webber.config import configurable, reinit_config
+from webber.config import reinit_config, get_config_param
 from webber.context import set_context, get_context
 from webber.ct_dispatch import get_content_handler, extract_url
 from webber.utils import (
@@ -134,7 +134,6 @@ def parseCommandLine():
 	return parser.parse_args()
 
 
-@configurable
 def main():
 	toml = load_metadata()
 
@@ -157,8 +156,8 @@ def main():
 		log.trace('CLI args:', args)
 
 		set_context(
-			config=main.__config__,
-			palette=load_theme(main.__config__.theme)
+			config=get_config_param(),
+			palette=load_theme(get_config_param("theme"))
 		)
 
 		# load last build timestamp

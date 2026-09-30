@@ -76,13 +76,6 @@ def load_config(appname:str) -> ConfigSection:
 _config = load_config("webber")
 
 
-# Decorator to attach the global configuration to a function or a class.
-def configurable(f):
-	global _config
-	f.__config__ = _config
-	return f
-
-
 def reinit_config(appname:str) -> None:
 	global _config
 	try:
@@ -93,14 +86,16 @@ def reinit_config(appname:str) -> None:
 		log.warning(f"Failed to delete config file: {e}")
 
 
-def get_config_param(name: str, default=None) -> Any:
+def get_config_param(name: str|None=None, default:Any=None) -> Any:
 	global _config
 	o = _config
+	if not name:
+		return o
 	for part in name.split('.'):
 		if o is None or not hasattr(o, part):
 			raise ValueError(f"Configuration parameter '{name}' not found")
 		o = getattr(o, part)
-	return str(o)
+	return o
 
 
 def set_config_param(name:str, value:Any) -> None:
