@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from typing import Any, Callable, Iterable
 from pathlib import Path
 from glob import glob
+import re
 import shutil
 from functools import wraps
 from contextlib import contextmanager
@@ -135,13 +136,18 @@ def validate_dict(d: dict, schema: dict) -> dict:
 	return d
 
 
-def load_toml():
-	import tomllib
+def load_metadata():
 	try:
-		root_dir = Path(__file__).resolve().parent.parent.parent
-		for tomlname in glob(str(root_dir / "*.toml")):
-			with open(tomlname, "rb") as f:
-				return dict_to_namespace(tomllib.load(f))
-			break
-	except FileNotFoundError:
-		return SimpleNamespace()
+		from importlib import metadata
+		md = metadata.metadata("webber").json
+		m = re.match(r"([^<]+) <([^>]+)>", md.get("author_email", ""))
+		toml_like = {
+			"project": {
+				"name": md.get("name"),
+				"version": md.get("version"),
+				"authors": [{"name": m.group(1) if m else "", "email": m.group(2) if m else ""}]
+			}
+		}
+		return dict_to_namespace(toml_like)
+	except metadata.PackageNotFoundError:
+		raise

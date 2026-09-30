@@ -14,7 +14,7 @@ from webber.utils import (
 	intercept,
 	handle_broken_pipe,
 	restart,
-	load_toml,
+	load_metadata,
 	get_terminal_size
 )
 from webber.unparsable_argparse import UnparsableArgumentParser
@@ -112,7 +112,7 @@ def batch_mode():
 
 
 def parseCommandLine():
-	toml = load_toml()
+	toml = load_metadata()
 	class action_reset(argparse.Action):
 		def __call__(self, parser, namespace, values, option_string=None):
 			WebberTuiHistory.delete_file()
@@ -136,7 +136,7 @@ def parseCommandLine():
 
 @configurable
 def main():
-	toml = load_toml()
+	toml = load_metadata()
 
 	set_context(
 		appname=toml.project.name,
