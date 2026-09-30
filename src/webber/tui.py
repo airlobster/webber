@@ -50,7 +50,7 @@ def tui_session(navigate, render):
 	searcher = Searcher()
 
 	modes = {
-		"main": SimpleNamespace({
+		"main": SimpleNamespace(**{
 			"status_bar": lambda: text_from_template('sb_general', {
 					"appname": appname,
 					"version": version,
@@ -60,7 +60,7 @@ def tui_session(navigate, render):
 					"search_rel_pos": searcher.rel_pos(),
 				}),
 		}),
-		"edit": SimpleNamespace({
+		"edit": SimpleNamespace(**{
 			"status_bar": lambda: text_from_template('sb_editing')
 		}),
 	}

@@ -288,7 +288,7 @@ class ListItemBehavior(IgnoreWhitespaces):
 				continue
 			if bullet_color:
 				yield bullet_color
-			yield f'\n{indent*(self._nest+1)}{''.join(self.render_bullet())} '
+			yield f"\n{indent*(self._nest+1)}{''.join(self.render_bullet())} "
 			if bullet_color:
 				yield ANSI.RESET
 			yield ''.join(child.render()).strip()

@@ -44,7 +44,7 @@ def download_content(url:str):
 		if not surl.scheme:
 			url = "https://" + url
 		http_conf = vars(get_context().config.http)
-		r = requests.get(url, headers=dict(http_conf), impersonate="chrome")
+		r = requests.get(url, headers=dict(http_conf))
 		yield r
 	finally:
 		if r is not None:
