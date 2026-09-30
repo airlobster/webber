@@ -1,5 +1,4 @@
 from webber.algorithms.stack import Stack
-from webber import log
 
 class Breadcrumbs(Stack):
 	def __init__(self, *args, delimiter='.', **kwargs):
@@ -14,10 +13,8 @@ class Breadcrumbs(Stack):
 
 	def push(self, item):
 		r = super().push(item)
-		log.debug(repr(self))
 		return r
 
 	def pop(self, guard=None):
 		r = super().pop(guard)
-		log.debug(repr(self))
 		return r

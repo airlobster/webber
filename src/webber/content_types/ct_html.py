@@ -10,7 +10,9 @@ from webber.algorithms.textmanip import render_table
 from webber.context import set_context, get_context
 from webber.ansi import ANSI
 from webber.profile import profiled
-from webber import log
+from webber.loggingex import create_logger
+
+log = create_logger(__name__)
 
 class LexerEventType:
 	INIT = 'INIT'

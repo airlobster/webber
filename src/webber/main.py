@@ -6,7 +6,7 @@ from pathlib import Path
 import argparse
 from urllib.parse import urlsplit
 from curl_cffi import requests
-import webber.log as log
+from webber.loggingex import create_logger, get_levels, set_global_level
 from webber.config import reinit_config, get_config_param
 from webber.context import set_context, get_context
 from webber.ct_dispatch import get_content_handler, extract_url
@@ -34,6 +34,7 @@ from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.profile import get_prof_table, print_prof_table, profiled
 from webber.themes import load_theme
 
+log = create_logger(__name__)
 
 @profiled
 @contextmanager
@@ -124,7 +125,7 @@ def parseCommandLine():
 	parser.add_argument("-v", "--version", action="version", version=f"{toml.project.name} {toml.project.version}")
 	parser.add_argument("-b", "--batch", action="store_true", default=False, help="Run in plain text mode")
 	parser.add_argument("-C", "--colors", choices=["auto", "always", "never"], default="auto", help="Color output mode")
-	parser.add_argument("-l", "--log", choices=log.levels, help="Set the logging level", default="INFO")
+	parser.add_argument("-l", "--log", choices=get_levels(), help="Set the logging level", default="INFO")
 	parser.add_argument("-N", "--line_numbers", action="store_true", default=False, help="Enable line numbers")
 	parser.add_argument("-r", "--reset", nargs=0, action=action_reset, help="Reset the application's history and configuration")
 	parser.add_argument("url", nargs="?", help="URL")
@@ -145,15 +146,14 @@ def main():
 	)
 
 	args = None
-	log.set_level("INFO")
 	try:
 		args = parseCommandLine()
 		set_context(args=args)
-		log.set_level(args.log)
+		set_global_level(args.log)
 		if getattr(args, "debug", False):
 			# override log level to DEBUG if debug mode is enabled
-			log.set_level("TRACE")
-		log.trace('CLI args:', args)
+			set_global_level("DEBUG")
+		log.debug('CLI args:', args)
 
 		set_context(
 			config=get_config_param(),

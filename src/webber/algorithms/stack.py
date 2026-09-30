@@ -1,6 +1,9 @@
 from typing import Any
 from webber.algorithms.pushpop import PushPopContainer
-from webber import log
+from webber.loggingex import create_logger
+
+log = create_logger(__name__)
+
 
 class Stack(PushPopContainer):
 	def __init__(self, *args):

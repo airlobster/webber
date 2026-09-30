@@ -3,7 +3,6 @@ from pathlib import Path
 import json
 from typing import Any
 from webber.utils import dict_to_namespace, validate_dict
-from webber import log
 
 class ConfigSection(SimpleNamespace):
 	def __init__(self, **kwargs):
@@ -83,7 +82,7 @@ def reinit_config(appname:str) -> None:
 		pathname.unlink()
 		_config = load_config(appname)
 	except Exception as e:
-		log.warning(f"Failed to delete config file: {e}")
+		pass
 
 
 def get_config_param(name: str|None=None, default:Any=None) -> Any:
