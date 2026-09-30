@@ -138,8 +138,8 @@ def validate_dict(d: dict, schema: dict) -> dict:
 
 def load_metadata():
 	try:
-		from importlib import metadata
-		md = metadata.metadata("webber").json
+		from importlib.metadata import metadata
+		md = metadata("webber").json
 		m = re.match(r"([^<]+) <([^>]+)>", md.get("author_email", ""))
 		toml_like = {
 			"project": {
