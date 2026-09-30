@@ -33,7 +33,7 @@ dist:
 	@mv /tmp/__debug__.py src/webber/.
 
 checkin:
-	@git diff . | grep -E '^[\+\-][^\+\-]+' | head -n 20 > /tmp/git_diff_summary.txt
+	@git diff . | grep -E '^[\+\-][^\+\-]+' > /tmp/git_diff_summary.txt
 	@date > TIMESTAMP
 	git pull && git add . && git commit -F /tmp/git_diff_summary.txt && git push
 
