@@ -46,6 +46,8 @@ def download_content(url:str):
 			url = "https://" + url
 		http_conf = vars(get_context().config.http)
 		r = requests.get(url, headers=dict(http_conf))
+		if not r.ok:
+			raise ValueError(f"Failed to download content from {url}, status code: {r.status_code}")
 		yield r
 	finally:
 		if r is not None:
