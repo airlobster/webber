@@ -1,64 +1,61 @@
-from typing import Iterable, Callable, List, Tuple
+from typing import Iterable, Callable
 from webber.ansi import ANSI
 from webber.context import get_context
 from webber.profile import profiled
+from webber.utils import UngettableIterator
+
 
 # Create a filler function that is aware of ANSI escape sequences and handles text wrapping correctly.
 def get_filler(*, width: int, wrap_thresh:int=15, tab_width:int=4, add_hyphen:bool=False) -> Callable[[Iterable[str]], Iterable[str]]:
-	ansi = []
-	in_ansi = False
-	col = 0
-	buf = []
-	def flush():
-		nonlocal col, buf
-		if buf:
-			yield ''.join(buf)
-			buf.clear()
-		col = 0
-	def ispunct(c: str) -> bool:
-		return c in '.,;:!?()[]{}'
-	def ansi_aware_fill(text:Iterable[str]) -> Iterable[str]:
-		nonlocal ansi, in_ansi, col, buf
-		for s in text:
-			for c in s:
-				if c == '\x1b':
-					ansi = [c]
-					in_ansi = True
-					continue
-				if in_ansi:
-					ansi.append(c)
-					if c.isalpha():
-						buf.append(''.join(ansi))
-						ansi.clear()
-						in_ansi = False
-					continue
-				buf.append(c)
-				if c == '\n':
-					yield from flush()
-					continue
-				if c == '\t':
-					# soft wrap on tab expansion
-					col += tab_width - (col % tab_width)
-					if col >= width:
-						buf.append('\n')
-						yield from flush()
-					continue
-				if (c.isspace() or ispunct(c)) and col >= width - wrap_thresh:
-					# soft wrap on whitespace
-					buf.append('\n')
-					yield from flush()
-					continue
-				if col >= width:
-					# hard break using a hyphen and newline
-					if add_hyphen:
-						buf.append('-')
-					buf.append('\n')
-					yield from flush()
-				col += 1
-		# flush any remaining text in the buffer
-		yield from flush()
+	class State:
+		NORMAL = 0
+		ANSI = 1
+		SKIP_WS = 2
+	state:State = [State.NORMAL]
+	col:int = 0
 
-	return ansi_aware_fill
+	def ispunct(c: str) -> bool:
+		return c.isprintable() and not c.isalnum() and not c.isspace()
+
+	def feed(it: Iterable[str]) -> Iterable[str]:
+		nonlocal state, col
+		for s in it:
+			u = UngettableIterator(s)
+			for c in u:
+				curr_state = state[-1]
+				if curr_state == State.NORMAL:
+					yield c
+					if c == '\x1b':
+						state.append(State.ANSI)
+					elif c == '\n':
+						col = 0
+					elif c == '\t':
+						col += tab_width - (col % tab_width)
+					else:
+						col += 1
+					if (c.isspace() or ispunct(c)) and col >= (width - wrap_thresh):
+						# wrap on whitespace when reaching the wrap threshold
+						yield '\n'
+						col = 0
+						state.append(State.SKIP_WS)
+					elif col >= width:
+						# break word when reaching the maximum width
+						if add_hyphen:
+							yield '-'
+						yield '\n'
+						col = 0
+						state.append(State.SKIP_WS)
+				elif curr_state == State.ANSI:
+					# echo ANSI sequence without affecting the column count
+					yield c
+					if c.isalpha():
+						state.pop()
+				elif curr_state == State.SKIP_WS:
+					if not c.isspace():
+						u.unget(c)
+						state.pop()
+
+	return feed
 
 
 # Reduce consecutive empty lines to a maximum of `max_empty`

@@ -1,7 +1,7 @@
 import os
 import sys
 from types import SimpleNamespace
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Iterator
 from pathlib import Path
 from glob import glob
 import re
@@ -151,3 +151,20 @@ def load_metadata():
 		return dict_to_namespace(toml_like)
 	except metadata.PackageNotFoundError:
 		raise
+
+
+class UngettableIterator(Iterator):
+	def __init__(self, iterable: Iterator[Any]):
+		self._iter = iter(iterable)
+		self._buffer = []
+
+	def __iter__(self):
+		return self
+
+	def __next__(self):
+		if self._buffer:
+			return self._buffer.pop()
+		return next(self._iter)
+
+	def unget(self, item: Any):
+		self._buffer.append(item)
