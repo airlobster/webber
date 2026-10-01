@@ -3,13 +3,15 @@ import sys
 from types import SimpleNamespace
 from typing import Any, Callable, Iterable, Iterator
 from pathlib import Path
-from glob import glob
 import re
 import shutil
 from functools import wraps
 from contextlib import contextmanager
 import jsonschema as jso
 from webber.context import get_context
+from webber.loggingex import logged, get_logger
+
+log = get_logger(__name__)
 
 # iterator interceptor
 def intercept(it:Iterable[Any], visit:Callable[[Any], None]|None=None):
@@ -136,6 +138,7 @@ def validate_dict(d: dict, schema: dict) -> dict:
 	return d
 
 
+@logged(log)
 def load_metadata():
 	try:
 		from importlib.metadata import metadata

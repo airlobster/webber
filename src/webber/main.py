@@ -6,7 +6,7 @@ from pathlib import Path
 import argparse
 from urllib.parse import urlsplit
 from curl_cffi import requests
-from webber.loggingex import create_logger, get_levels, set_global_level
+from webber.loggingex import get_logger, get_levels, set_global_level, logged
 from webber.config import reinit_config, get_config_param
 from webber.context import set_context, get_context
 from webber.ct_dispatch import get_content_handler, extract_url
@@ -34,7 +34,7 @@ from webber.tui_lib.prompt_history import WebberTuiHistory
 from webber.profile import get_prof_table, print_prof_table, profiled
 from webber.themes import load_theme
 
-log = create_logger(__name__)
+log = get_logger(__name__)
 
 @profiled
 @contextmanager
@@ -53,6 +53,7 @@ def download_content(url:str):
 
 
 @profiled
+@logged(log)
 def navigate(url:str, links:List[str]=None) -> Iterable[str]:
 	with download_content(extract_url(url)) as r:
 		content_type = r.headers.get('Content-Type', '').split(';')[0]
@@ -63,6 +64,7 @@ def navigate(url:str, links:List[str]=None) -> Iterable[str]:
 
 
 @profiled
+@logged(log)
 def render_formatted_text(tokens:Iterable, use_colors:bool) -> Iterable[str]:
 	stream = \
 		compress_ansi(
@@ -91,6 +93,7 @@ def render_formatted_text(tokens:Iterable, use_colors:bool) -> Iterable[str]:
 
 
 @handle_broken_pipe
+@logged(log)
 def events_loop():
 	def render(tokens:Iterable):
 		args = get_context().args
@@ -102,6 +105,7 @@ def events_loop():
 
 
 @handle_broken_pipe
+@logged(log)
 @profiled
 def batch_mode():
 	args = get_context().args
@@ -181,6 +185,7 @@ def main():
 			return
 		events_loop()
 	except Exception as e:
+		log.error(f"An error occurred: {e}")
 		# raise
 		if args and getattr(args, "debug", False):
 			raise e
