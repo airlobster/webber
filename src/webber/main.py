@@ -126,6 +126,9 @@ def parseCommandLine():
 			reinit_config(toml.project.name)
 			restart(parser.unparse(namespace, exclude=["reset"]))
 			sys.exit(0)
+	class action_log_level(argparse.Action):
+		def __call__(self, parser, namespace, values, option_string=None):
+			set_global_level(values)
 	parser = UnparsableArgumentParser(
 		prog=toml.project.name,
 		description=f"{toml.project.name} - text-mode web reader",
@@ -140,7 +143,7 @@ def parseCommandLine():
 	# allow debug features only if __debug__.py exists
 	debug_features = Path.joinpath(Path(sys.argv[0]).parent, "__debug__.py").exists()
 	if debug_features:
-		parser.add_argument("-l", "--log", choices=get_levels(), help="Set the logging level", default="INFO")
+		parser.add_argument("-l", "--log", action=action_log_level, choices=get_levels(), help="Set the logging level", default="INFO")
 		parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode")
 		parser.add_argument("-p", "--profile", action="store_true", default=False, help="Enable profiling")
 	return parser.parse_args()
@@ -160,9 +163,7 @@ def main():
 	try:
 		args = parseCommandLine()
 		set_context(args=args)
-		set_global_level(args.log)
 		if getattr(args, "debug", False):
-			# override log level to DEBUG if debug mode is enabled
 			set_global_level("DEBUG")
 		log.debug(f'CLI args: {args}')
 
@@ -196,7 +197,7 @@ def main():
 		# raise
 		if args and getattr(args, "debug", False):
 			raise e
-		print(f"{log.COLOR_CAT.ERROR}{e}{ANSI.RESET}", file=sys.stderr)
+		print(f"{ANSI.FG_8(31)}{e}{ANSI.RESET}", file=sys.stderr)
 		return 1
 	finally:
 		if args and getattr(args, "profile", False):
