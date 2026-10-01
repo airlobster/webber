@@ -124,14 +124,19 @@ def parseCommandLine():
 			reinit_config(toml.project.name)
 			restart(parser.unparse(namespace, exclude=["reset"]))
 			sys.exit(0)
-	debug_features = Path.joinpath(Path(sys.argv[0]).parent, "__debug__.py").exists()
-	parser = UnparsableArgumentParser(description=f"{toml.project.name} - command-line web reader", exit_on_error=False)
+	parser = UnparsableArgumentParser(
+		prog=toml.project.name,
+		description=f"{toml.project.name} - text-mode web reader",
+		exit_on_error=False
+		)
 	parser.add_argument("-v", "--version", action="version", version=f"{toml.project.name} v.{toml.project.version}")
 	parser.add_argument("-b", "--batch", action="store_true", default=False, help="Run in plain text mode")
 	parser.add_argument("-C", "--colors", choices=["auto", "always", "never"], default="auto", help="Color output mode")
 	parser.add_argument("-N", "--line_numbers", action="store_true", default=False, help="Enable line numbers")
 	parser.add_argument("-r", "--reset", nargs=0, action=action_reset, help="Reset the application's history and configuration")
 	parser.add_argument("url", nargs="?", help="URL")
+	# allow debug features only if __debug__.py exists
+	debug_features = Path.joinpath(Path(sys.argv[0]).parent, "__debug__.py").exists()
 	if debug_features:
 		parser.add_argument("-l", "--log", choices=get_levels(), help="Set the logging level", default="INFO")
 		parser.add_argument("-d", "--debug", action="store_true", default=False, help="Enable debug mode")
