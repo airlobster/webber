@@ -2,100 +2,26 @@ from abc import abstractmethod
 from types import SimpleNamespace
 from typing import Iterable, Tuple, List, Dict
 import re
-from fnmatch import fnmatch
 from webber.algorithms.stack import Stack
-from webber.algorithms.queue import Queue
-from webber.algorithms.breadcrumbs import Breadcrumbs
 from webber.algorithms.textmanip import render_table
 from webber.context import set_context, get_context
 from webber.ansi import ANSI
 from webber.profile import profiled
 from webber.loggingex import get_logger
+from webber.html_tools import LexerEventType, html_lexer as lexer, html_tracker, filter_forbidden_tags
 
 log = get_logger(__name__)
 
-class LexerEventType:
-	INIT = 'INIT'
-	BEGIN = 'BEGIN'
-	END = 'END'
-	DATA = 'DATA'
+##############################################################################
+##############################################################################
 
-def html_lexer(text:str) -> Iterable[str]:
-	from html.parser import HTMLParser
-
-	class MyHtmlParser(HTMLParser):
-		def __init__(self, *args, **kwargs):
-			super().__init__(*args, **kwargs)
-			html_config = getattr(get_context().config, 'html', SimpleNamespace())
-			self.blacklist = set(getattr(html_config, 'blacklist', []))
-			self.whitelist = set(getattr(html_config, 'whitelist', ["html.head.title"]))
-			self.q = Queue()
-			self.breadcrumbs = Breadcrumbs()
-			self.swallow = 0
-			self.in_white = 0
-
-		def handle_starttag(self, tag, attrs):
-			t = tag.lower()
-			self.breadcrumbs.push(t)
-			is_void = self.is_void(t)
-			is_black = self.is_black(str(self.breadcrumbs))
-			is_white = self.is_white(str(self.breadcrumbs))
-			if is_black:
-				self.swallow += 1
-			if is_white:
-				self.in_white += 1
-			if not self.swallow or self.in_white:
-				self.notify(SimpleNamespace(type=LexerEventType.BEGIN, tag=t, attrs=attrs))
-			# force signaling a close-tag for void elements
-			if is_void:
-				self.handle_endtag(tag, manual=True)
-
-		def handle_endtag(self, tag, manual=False):
-			t = tag.lower()
-			is_void = self.is_void(t)
-			is_black = self.is_black(str(self.breadcrumbs))
-			is_white = self.is_white(str(self.breadcrumbs))
-			# if it's a void-element, ignore end events not triggered manually
-			if is_void and not manual:
-				return
-			self.breadcrumbs.pop(t)
-			if not self.swallow or self.in_white:
-				self.notify(SimpleNamespace(type=LexerEventType.END, tag=t))
-			if is_black:
-				if self.swallow == 0:
-					raise ValueError(f"Unexpected end tag: {t}")
-				self.swallow -= 1
-			if is_white:
-				if self.in_white == 0:
-					raise ValueError(f"Unexpected end of white-listed tag: {t}")
-				self.in_white -= 1
-
-		def handle_data(self, data):
-			if self.swallow and not self.in_white:
-				return
-			self.notify(SimpleNamespace(type=LexerEventType.DATA, data=data))
-
-		def notify(self, event:SimpleNamespace):
-			self.q.push(event)
-
-		def get_tokens(self):
-			while self.q:
-				yield self.q.pop()
-
-		def is_void(self, tag:str) -> bool:
-			# https://developer.mozilla.org/en-US/docs/Glossary/Void_element
-			void = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'}
-			return any(t.lower() == tag.lower() for t in void)
-
-		def is_black(self, tag:str) -> bool:
-			return any(fnmatch(tag.lower(), t.lower()) for t in self.blacklist)
-
-		def is_white(self, tag:str) -> bool:
-			return any(fnmatch(tag.lower(), t.lower()) for t in self.whitelist)
-
-	parser = MyHtmlParser()
-	parser.feed(text)
-	yield from parser.get_tokens()
+def html_lexer(text: str):
+	config = getattr(get_context().config, 'html', SimpleNamespace())
+	forbidden = set(getattr(config, 'blacklist', []))
+	l = lexer()
+	t = html_tracker()
+	f = filter_forbidden_tags(forbidden)
+	return f(t(l(iter([text]))))
 
 ##############################################################################
 ##############################################################################

@@ -5,7 +5,8 @@ from contextlib import contextmanager
 from pathlib import Path
 import argparse
 from urllib.parse import urlsplit
-from curl_cffi import requests
+import requests
+from requests_file import FileAdapter
 from webber.loggingex import get_logger, get_levels, set_global_level, logged
 from webber.config import reinit_config, get_config_param
 from webber.context import set_context, get_context
@@ -41,14 +42,13 @@ log = get_logger(__name__)
 def download_content(url:str):
 	r = None
 	try:
-		surl = urlsplit(url)
-		if not surl.scheme:
-			url = "https://" + url
 		http_conf = vars(get_context().config.http)
-		r = requests.get(url, headers=dict(http_conf))
-		if not r.ok:
-			raise ValueError(f"Failed to download content from {url}, status code: {r.status_code}")
-		yield r
+		with requests.Session() as session:
+			session.mount("file://", FileAdapter())
+			r = session.get(url, headers=dict(http_conf))
+			if not r.ok:
+				raise ValueError(f"Failed to download content from {url}, status code: {r.status_code}")
+			yield r
 	finally:
 		if r is not None:
 			r.close()
@@ -57,6 +57,9 @@ def download_content(url:str):
 @profiled
 @logged(log)
 def navigate(url:str, links:List[str]=None) -> Iterable[str]:
+	surl = urlsplit(url)
+	if not surl.scheme:
+		url = "https://" + url
 	with download_content(extract_url(url)) as r:
 		content_type = r.headers.get('Content-Type', '').split(';')[0]
 		encoding = r.encoding if r.encoding else 'utf-8'

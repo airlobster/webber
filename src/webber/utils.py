@@ -142,18 +142,26 @@ def validate_dict(d: dict, schema: dict) -> dict:
 def load_metadata():
 	try:
 		from importlib.metadata import metadata
-		md = metadata("webber").json
-		m = re.match(r"([^<]+) <([^>]+)>", md.get("author_email", ""))
+		md = metadata("webber")
+		mdj = md.json
+		m = re.match(r"([^<]+) <([^>]+)>", mdj.get("author_email", ""))
 		toml_like = {
 			"project": {
-				"name": md.get("name"),
-				"version": md.get("version"),
+				"name": mdj.get("name"),
+				"version": mdj.get("version"),
 				"authors": [{"name": m.group(1) if m else "", "email": m.group(2) if m else ""}]
 			}
 		}
 		return dict_to_namespace(toml_like)
-	except metadata.PackageNotFoundError:
-		raise
+	except:
+		toml_like = {
+			"project": {
+				"name": "---",
+				"version": "0.0.0",
+				"authors": [{"name": "", "email": ""}]
+			}
+		}
+		return dict_to_namespace(toml_like)
 
 
 class UngettableIterator(Iterator):
