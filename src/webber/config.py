@@ -29,20 +29,19 @@ def load_config(appname:str) -> ConfigSection:
 		"theme": None,
 		"html": {
 			"blacklist": [
-				'html.head',
-				'*.nav',
-				'*.video',
-				'*.dl',
-				'*.template',
-				'*.style',
-				'*.script',
-				'*.select',
-				'*.button',
-				'*.input',
-				'*.textarea',
-				'*.svg',
-				'*.img',
-				'*.form'
+				'nav',
+				'video',
+				'dl',
+				'template',
+				'style',
+				'script',
+				'select',
+				'button',
+				'input',
+				'textarea',
+				'svg',
+				'img',
+				'form'
 			]
 		},
 		"http": {
