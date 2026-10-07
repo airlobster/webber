@@ -115,7 +115,7 @@ def html_tracker() -> HtmlFilterFunc:
 			elif token.type == LexerEventType.END:
 				t_ = HtmlToken(**vars(token), path=path[:])
 				path.pop(-1)
-			elif token.type == LexerEventType.DATA:
+			else:
 				t_ = HtmlToken(**vars(token), path=path[:])
 			yield t_
 
