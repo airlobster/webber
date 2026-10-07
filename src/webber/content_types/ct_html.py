@@ -8,7 +8,13 @@ from webber.context import set_context, get_context
 from webber.ansi import ANSI
 from webber.profile import profiled
 from webber.loggingex import get_logger
-from webber.html_tools import LexerEventType, html_lexer as lexer, html_tracker, filter_forbidden_tags
+from webber.html_tools import (
+	LexerEventType,
+	html_lexer as lexer,
+	html_tracker,
+	filter_forbidden_tags,
+	html_ignore_whitespace
+)
 
 log = get_logger(__name__)
 
@@ -21,7 +27,8 @@ def html_lexer(text: str):
 	l = lexer()
 	t = html_tracker()
 	f = filter_forbidden_tags(forbidden)
-	return f(t(l(iter([text]))))
+	w = html_ignore_whitespace() 
+	return f(w(t(l(iter([text])))))
 
 ##############################################################################
 ##############################################################################

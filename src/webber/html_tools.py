@@ -1,6 +1,7 @@
 from typing import Callable, Iterable, Iterator, Generator
 from types import SimpleNamespace
 import html
+import re
 from html.parser import HTMLParser
 
 ##############################################################################
@@ -124,17 +125,51 @@ def html_tracker() -> HtmlFilterFunc:
 ##############################################################################
 
 def html_filter(flt:Callable[[HtmlToken], bool]|None=None) -> HtmlFilterFunc:
+	swallow = 0
+
 	if not callable(flt):
 		flt = lambda _: True
 
 	def f(tokens:Iterator[HtmlToken]) -> Generator[HtmlToken, None, None]:
+		nonlocal swallow
 		for token in tokens:
 			if not isinstance(token, HtmlToken):
 				raise ValueError("Bad pipeline: Invalid token type. Tokens must be HtmlToken instances")
 			if not hasattr(token, 'path'):
 				raise ValueError("Illegal pipeline: html_filter must come after html_tracker")
 			if not flt(token):
+				if token.type == LexerEventType.BEGIN:
+					swallow += 1
+				elif token.type == LexerEventType.END:
+					if swallow == 0:
+						raise ValueError("Mismatched END token encountered while filtering HTML")
+					swallow -= 1
 				continue
+			if swallow:
+				continue
+			yield token
+
+	return f
+
+##############################################################################
+
+def html_ignore_whitespace() -> HtmlFilterFunc:
+	reWS = re.compile(r'[ \t]+')
+	prev = ''
+
+	def f(tokens: Iterator[HtmlToken]) -> Generator[HtmlToken, None, None]:
+		nonlocal prev
+		for token in tokens:
+			if not isinstance(token, HtmlToken):
+				raise ValueError("Bad pipeline: Invalid token type. Tokens must be HtmlToken instances")
+			if token.type == LexerEventType.DATA:
+				# Collapse consecutive whitespace into a single space
+				token.data = reWS.sub(' ', token.data.replace('\r', ''))
+				# Strip leading and trailing whitespace
+				token.data = token.data.strip(' \t')
+				if not token.data or (token.data.isspace() and prev.isspace()):
+					continue
+				prev = token.data
 			yield token
 
 	return f
